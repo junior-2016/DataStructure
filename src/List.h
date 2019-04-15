@@ -56,6 +56,11 @@ private:
         flat_string += ("}");
     }
 
+    void refresh_flat_string() {
+        flat_string = "";
+        getFlatString(*this);
+    }
+
 public:
     // 在 List 里实现 range-for 循环.
     // 实现方式有两种:
@@ -103,14 +108,14 @@ public:
         data.push_back(t);
         is_single = true;
         lists.push_back(*this);
-        getFlatString(*this);
+        refresh_flat_string();
     }
 
     explicit List(std::vector<T> &vector) : data(vector) {
         for (auto &item:vector) {
             lists.push_back(List<T>(item));
         }
-        getFlatString(*this);
+        refresh_flat_string();
     }
 
     List(std::initializer_list<T> list) { // 解析由多个int组成的List对象,即1维度
@@ -118,14 +123,19 @@ public:
             data.push_back(item);
             lists.push_back(List<T>(item));
         }
-        getFlatString(*this);
+        refresh_flat_string();
     }
 
     List(std::initializer_list<List<T>> list) { // 解析由多个list组成的List对象
         for (auto &item:list) {
             lists.push_back(item);
         }
-        getFlatString(*this);
+        refresh_flat_string();
+    }
+
+    void append(const List<T> &list) {
+        lists.push_back(list);
+        refresh_flat_string();
     }
 
     static List<T> flat(const List<T> &list) {

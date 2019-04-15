@@ -21,10 +21,21 @@ void TEST_LIST() {
     cout << list << list.size() << "\n";
     cout << flat_list << flat_list.size() << "\n";
 
-
     for (const auto &i : list) { // for-ranged loop
         cout << i;
     }
+
+    list.append(5);
+    cout << list << list.size() << "\n";
+
+    list.append(List<int>(6));
+    cout << list << list.size() << "\n";
+
+    list.append({5, 5, {7, 8}});
+    cout << list << list.size() << "\n";
+
+    list.append(flat_list);
+    cout << list << list.size() << "\n";
 
     cout << "---------------------------------------------\n\n";
 }
