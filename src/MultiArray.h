@@ -17,53 +17,55 @@
 #include <type_traits>
 #include <vector>
 
-template<typename T, size_t ... Ns>
-class MultiArrayPointer;
+namespace DS {
 
-template<typename T, size_t N>
-class MultiArrayPointer<T, N> {
-private:
-    T *data;
-public:
-    explicit MultiArrayPointer(T *data) : data(data) {}
+    template<typename T, size_t ... Ns>
+    class MultiArrayPointer;
 
-    constexpr T &operator[](const size_t &idx) const {
-        // assert idx < N
-        return data[idx];
-    }
-};
+    template<typename T, size_t N>
+    class MultiArrayPointer<T, N> {
+    private:
+        T *data;
+    public:
+        explicit MultiArrayPointer(T *data) : data(data) {}
 
-template<typename T, size_t N, size_t ...Ns>
-class MultiArrayPointer<T, N, Ns...> {
-private:
-    T *data;
-    constexpr static size_t stride = (1* ... *Ns);
-public:
-    explicit MultiArrayPointer(T *data) : data(data) {}
-
-    constexpr auto operator[](const size_t &idx) const {
-        // assert idx < N
-        return MultiArrayPointer<T, Ns...>(data + idx * stride);
-    }
-};
-
-template<typename T, size_t N, size_t ...Ns>
-class MultiArray {
-private:
-    static constexpr size_t stride = (1 * ... * Ns);
-    T *data = new T[(N * ... * Ns)];
-public:
-
-    MultiArray() {
-        for (size_t i = 0; i < (N * ... * Ns); i++) {
-            data[i] = (T) i;
+        constexpr T &operator[](const size_t &idx) const {
+            // assert idx < N
+            return data[idx];
         }
-    }
+    };
 
-    constexpr auto operator[](const size_t &idx) const {
-        // assert idx < N
-        return MultiArrayPointer<T, Ns...>(data + idx * stride);
-    }
-};
+    template<typename T, size_t N, size_t ...Ns>
+    class MultiArrayPointer<T, N, Ns...> {
+    private:
+        T *data;
+        constexpr static size_t stride = (1* ... *Ns);
+    public:
+        explicit MultiArrayPointer(T *data) : data(data) {}
 
+        constexpr auto operator[](const size_t &idx) const {
+            // assert idx < N
+            return MultiArrayPointer<T, Ns...>(data + idx * stride);
+        }
+    };
+
+    template<typename T, size_t N, size_t ...Ns>
+    class MultiArray {
+    private:
+        static constexpr size_t stride = (1 * ... * Ns);
+        T *data = new T[(N * ... * Ns)];
+    public:
+
+        MultiArray() {
+            for (size_t i = 0; i < (N * ... * Ns); i++) {
+                data[i] = (T) i;
+            }
+        }
+
+        constexpr auto operator[](const size_t &idx) const {
+            // assert idx < N
+            return MultiArrayPointer<T, Ns...>(data + idx * stride);
+        }
+    };
+}
 #endif //DATASTRUCTURE_MULTIARRAY_H

@@ -5,7 +5,14 @@
 #ifndef DATASTRUCTURE_DATASTRUCTURE_H
 #define DATASTRUCTURE_DATASTRUCTURE_H
 
-#include "List.h"
 #include "MultiArray.h"
+#include "List.h"
+
+namespace DS {
+    template<typename T, size_t N, size_t ...Ns>
+    class MultiArray;
+
+    class List;
+}
 
 #endif //DATASTRUCTURE_DATASTRUCTURE_H
