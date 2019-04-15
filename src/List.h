@@ -9,6 +9,7 @@
 #include <iostream>
 #include <functional>
 #include <numeric>
+#include <boost/any.hpp>
 
 /**
  * 实现多重嵌套List,以及用于解开多重嵌套的flat方法.
@@ -16,44 +17,20 @@
  * 解析过程为: List<int> list = List<int>{ List<int>{1,2,3}, List<int>(4), List<int>{5,6,7} }
  */
 
-// TODO: 下一步的实现是混合类型 List. 例如 List list = {1.23, "string", {1, 2, {'\n', 3.14}}}
-// eg: 带混合类型的堆栈
-/*  template<typename Allocator> // if need
- *  class Stack {
- *    private:
- *      char* top;
- *      char* end;
- *    public:
- *      template<typename T>
- *      FORCE_INLINE T* push(size_t count = 1){
- *          if( top+sizeof(T)*count >= end) { expand_stack(); }
- *          T * ret = reinterpret_cast<T>(top);
- *          top += sizeof(T)*count;
- *          return ret;
- *      }
- *      FORCE_INLINE template<typename T> T* push(size_t count){...}
- *      FORCE_INLINE template<typename T> T* pop(size_t count=1){..}
- *      FORCE_INLINE template<typename T> T* pop(size_t count){...}
- *      ~Stack(){
- *          //...
- *      }
- *  }
- *  usage:
- *  Stack<Allocator> stack_();
- *  // 泛型push
- *  bool addValue(){
- *      // placement new 就是不分配内存，由使用者给予内存空间来构建对象
- *      // 即: new (使用者提供的内存空间指针) construct_func(Args ...) ;
- *      new (stack_.template push<ValueType>()) ValueType (Args ...);
- *      return true;
- *  }
- *  // 一般push
- *  *(stack_.push<int>()) = 1;
- *  *(stack_.push<char>()) = 'c';
- *  .... 考虑到内存对齐,可能需要用 memcpy 把数据拷贝到push()提供的内存地址上.
- *
- *  // 释放:
- *  while(!stack_.empty()) { (stack_.template pop<ValueType>())->~ValueType(); }
+// TODO: 下一步的实现是混合类型 List, 例如 List list = {1.23, "string", {1, 2, {'\n', 3.14}}} ,
+//  暂时考虑使用 Boost.Any 实现.
+//  boost::any的内部实现参考: https://stackoverflow.com/questions/4988939/how-do-boostvariant-and-boostany-work
+//  以及 pdf/ValuedConversions.pdf
+/*
+ * std::vector<boost::any> DataVec;
+ * template<class T> void AddData(T data) { DataVec.emplace_back(std::move(data)); }
+ * template<class T> T GetData() { return boost::any_cast<T>(DataVec[VecPos++]); }
+ * AddData(32);
+ * AddData(true);
+ * AddData(std::string("test"));
+ * auto Var1 = GetData<int>();
+ * auto Var2 = GetData<bool>();
+ * auto Var3 = GetData<std::string>();
  */
 
 template<typename T>
