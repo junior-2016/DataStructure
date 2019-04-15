@@ -14,8 +14,48 @@
  * 实现多重嵌套List,以及用于解开多重嵌套的flat方法.
  * eg: List<int> list = { {1,2,3}, 4, {5,6,7} }
  * 解析过程为: List<int> list = List<int>{ List<int>{1,2,3}, List<int>(4), List<int>{5,6,7} }
- * @tparam T
  */
+
+// TODO: 下一步的实现是混合类型 List. 例如 List list = {1.23, "string", {1, 2, {'\n', 3.14}}}
+// eg: 带混合类型的堆栈
+/*  template<typename Allocator> // if need
+ *  class Stack {
+ *    private:
+ *      char* top;
+ *      char* end;
+ *    public:
+ *      template<typename T>
+ *      FORCE_INLINE T* push(size_t count = 1){
+ *          if( top+sizeof(T)*count >= end) { expand_stack(); }
+ *          T * ret = reinterpret_cast<T>(top);
+ *          top += sizeof(T)*count;
+ *          return ret;
+ *      }
+ *      FORCE_INLINE template<typename T> T* push(size_t count){...}
+ *      FORCE_INLINE template<typename T> T* pop(size_t count=1){..}
+ *      FORCE_INLINE template<typename T> T* pop(size_t count){...}
+ *      ~Stack(){
+ *          //...
+ *      }
+ *  }
+ *  usage:
+ *  Stack<Allocator> stack_();
+ *  // 泛型push
+ *  bool addValue(){
+ *      // placement new 就是不分配内存，由使用者给予内存空间来构建对象
+ *      // 即: new (使用者提供的内存空间指针) construct_func(Args ...) ;
+ *      new (stack_.template push<ValueType>()) ValueType (Args ...);
+ *      return true;
+ *  }
+ *  // 一般push
+ *  *(stack_.push<int>()) = 1;
+ *  *(stack_.push<char>()) = 'c';
+ *  .... 考虑到内存对齐,可能需要用 memcpy 把数据拷贝到push()提供的内存地址上.
+ *
+ *  // 释放:
+ *  while(!stack_.empty()) { (stack_.template pop<ValueType>())->~ValueType(); }
+ */
+
 template<typename T>
 struct List {
 private:
@@ -68,8 +108,13 @@ public:
     // 2.如果class内部是原生指针 T*data,就需要自己实现一个iterator.见:
     // https://stackoverflow.com/questions/8164567/how-to-make-my-custom-type-to-work-with-range-based-for-loops
 
-    // 注意下面的类型用typedef重命名时,需要在类型前面加上typename,因为这里的类型带有<T>,
-    // 如果不加上,就会报 missing 'typename' prior to dependent type name 错误.
+    /*
+     * 注意下面的类型用typedef重命名时,需要在类型前面加上typename.
+     * 因为这里的类型带有<T>, 如果不加上,就会报 missing 'typename' prior to dependent type name 错误.
+     * 这个特性称为 dependent names, 类似的还有一个:
+     * 例如 T *t = template variable.template_function<T>(Args ...);
+     * 调用某个模板函数,但是这个模板函数的类型是<T>,是未确定的(依赖于具体的运行情况),所以需要加上 template 前缀.
+     */
     typedef typename std::vector<List<T>>::const_iterator const_iterator;
     typedef typename std::vector<List<T>>::iterator iterator;
 
