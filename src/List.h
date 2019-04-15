@@ -2,8 +2,8 @@
 // Created by junior on 19-4-14.
 //
 
-#ifndef MAP_REDUCE_LIST_H
-#define MAP_REDUCE_LIST_H
+#ifndef DATASTRUCTURE_LIST_H
+#define DATASTRUCTURE_LIST_H
 
 #include <vector>
 #include <iostream>
@@ -22,6 +22,39 @@ private:
     std::vector<T> data;
     std::vector<List<T>> lists;
     bool is_single = false;
+    std::string flat_string;
+
+    void getFlatString(const List<T> &list) {
+        if (!list.data.empty()) {
+            if (list.data.size() == 1 && list.is_single) {
+                flat_string += (std::to_string(list.data[0]));
+            } else {
+                flat_string += ("{")
+                               + (std::accumulate(
+                        std::next(list.data.begin()),
+                        list.data.end(),
+                        std::to_string(list.data[0]),
+                        [](std::string a, T b) -> std::string {
+                            // 注意聚合函数的参数:首先把 list.data[0] 变为 std::string.
+                            // 然后根据聚合函数参数,依次执行:
+                            // f (init:string, data[1]:T) => result1:string;
+                            // f (result1:string, data[2]:T) => result2:string;
+                            // f (result2:string, data[3]:T) => result3:string;
+                            // .......
+                            // 如果聚合函数参数类型没有写对,会报错.
+                            return std::move(a) + ',' + std::to_string(b);
+                        }))
+                               + ('}');
+            }
+            return;
+        }
+        flat_string += ("{");
+        for (auto i = list.lists.begin(); i != list.lists.end(); ++i) {
+            getFlatString(*i);
+            flat_string += (i + 1 == list.lists.end() ? "" : ",");
+        }
+        flat_string += ("}");
+    }
 
 public:
     // 在 List 里实现 range-for 循环.
@@ -70,12 +103,14 @@ public:
         data.push_back(t);
         is_single = true;
         lists.push_back(*this);
+        getFlatString(*this);
     }
 
     explicit List(std::vector<T> &vector) : data(vector) {
         for (auto &item:vector) {
             lists.push_back(List<T>(item));
         }
+        getFlatString(*this);
     }
 
     List(std::initializer_list<T> list) { // 解析由多个int组成的List对象,即1维度
@@ -83,12 +118,14 @@ public:
             data.push_back(item);
             lists.push_back(List<T>(item));
         }
+        getFlatString(*this);
     }
 
     List(std::initializer_list<List<T>> list) { // 解析由多个list组成的List对象
         for (auto &item:list) {
             lists.push_back(item);
         }
+        getFlatString(*this);
     }
 
     static List<T> flat(const List<T> &list) {
@@ -98,7 +135,8 @@ public:
         // 带auto-推导的递归lambda函数,因为类型推导需要解释整一个lambda表达式才能确定,
         // 因此无法用[&f1]捕获f1,故而无法直接在函数里递归调用f1.
         // 采用的策略时将函数本身作为参数,这样调用的时候需要多一个函数参数.
-        // PS:使用[&]对所有外部变量捕获虽然方便,但是可能捕获到我们不要的变量(比如这里的list外部变量),因此最好明确要捕获的变量.
+        // PS:使用[&]对所有外部变量捕获虽然方便,但是可能捕获到我们不要的变量
+        // (比如这里的list外部变量),因此最好明确要捕获的变量.
         /*
         auto f_auto = [&record](auto &&self, const List<T> &list) -> void {
             if (list.lists.empty()) {
@@ -130,42 +168,9 @@ public:
         return List<T>(record);
     }
 
-    // 把输出改成允许全部展开的输出
+    // 展开输出 List
     friend std::ostream &operator<<(std::ostream &out, const List<T> &list) {
-        std::string string;
-        std::function<void(const List<T> &)> f = [&f, &string](const List<T> &list) -> void {
-            if (!list.data.empty()) {
-                if (list.data.size() == 1 && list.is_single) {
-                    string += (std::to_string(list.data[0]));
-                } else {
-                    string += ("{") +
-                              (std::accumulate(
-                                      std::next(list.data.begin()),
-                                      list.data.end(),
-                                      std::to_string(list.data[0]),
-                                      [](std::string a, T b) -> std::string {
-                                          // 注意聚合函数的参数:首先把 list.data[0] 变为 std::string.
-                                          // 然后根据聚合函数参数,依次执行:
-                                          // f (init:string, data[1]:T) => result1:string;
-                                          // f (result1:string, data[2]:T) => result2:string;
-                                          // f (result2:string, data[3]:T) => result3:string;
-                                          // .......
-                                          // 如果聚合函数参数类型没有写对,会报错.
-                                          return std::move(a) + ',' + std::to_string(b);
-                                      }))
-                              + ('}');
-                }
-                return;
-            }
-            string += ("{");
-            for (auto i = list.lists.begin(); i != list.lists.end(); ++i) {
-                f(*i);
-                string += (i + 1 == list.lists.end() ? "" : ",");
-            }
-            string += ("}");
-        };
-        f(list);
-        out << string << "\n";
+        out << list.flat_string << "\n";
         return out;
     }
 
@@ -179,4 +184,4 @@ public:
 
 };
 
-#endif //MAP_REDUCE_LIST_H
+#endif //DATASTRUCTURE_LIST_H

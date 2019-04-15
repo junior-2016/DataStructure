@@ -2,8 +2,8 @@
 // Created by junior on 19-4-13.
 //
 
-#ifndef MAP_REDUCE_MULTIARRAY_H
-#define MAP_REDUCE_MULTIARRAY_H
+#ifndef DATASTRUCTURE_MULTIARRAY_H
+#define DATASTRUCTURE_MULTIARRAY_H
 /**
  * C++17 模板类实现任意维度数组..
  * 内部数据指针只用一维,访问通过计算偏移实现.
@@ -66,4 +66,4 @@ public:
     }
 };
 
-#endif //MAP_REDUCE_MULTIARRAY_H
+#endif //DATASTRUCTURE_MULTIARRAY_H
