@@ -45,9 +45,28 @@ void TEST_LIST() {
     cout << "---------------------------------------------\n\n";
 }
 
-int main() {
+void TEST_ANY_VARIANT() {
+    cout << "---------------TEST ANY VARIANT------------------\n";
     DS::any any(std::vector<int>{1, 2, 3});
-    std::cout << DS::any_cast<vector<int>>(any).size() << "\n";
+    DS::any any1(2.36f);
+    const double &d = 6.66;
+    DS::any any2(d);
+    std::cout << any.type() << "\n";
+    std::cout << any1.type() << "\n";
+    std::cout << any2.type() << "\n";
+    try {
+        std::cout << DS::any_cast<std::vector<int, std::allocator<int>>>(any).size() << "\n";
+        std::cout << DS::any_cast<float>(any1) << "\n";
+        std::cout << DS::any_cast<double>(any2) << "\n";
+    } catch (const DS::any_cast_error &e) {
+        std::cerr << e.what() << "\n";
+    }
+    cout << "-------------------------------------------------\n\n";
+}
+
+int main() {
+    TEST_MULTI_ARRAY();
+    TEST_ANY_VARIANT();
     TEST_LIST();
     return 0;
 }

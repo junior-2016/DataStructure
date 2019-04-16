@@ -6,44 +6,15 @@
 #define DATASTRUCTURE_ANY_VARIANT_H
 
 #include <memory>
-/**
- std::any 实现方法:
- class Base{
-     public:
-         virtual std::string name() const;
- }
- template<typename T>
- class Child:Base{
-     private:
-         T value;
-         std::string type_info;
-     public:
-         std::string name () const override {return type_info;}
-         Child(const T&t){value = t; getTypeInfo(type_info); }
-         T getValue() const {return value;}
- }
- class any{
-     private:
-        std::shared_ptr<Base> ptr;
-     public:
-        template<typename T> any(const T& t){
-            ptr = std::static_pointer_cast<Child<T>(t)>;
-            // 将子类指针转为父类shared_ptr(即:go up class hierarchy),用static_pointer_cast.
-        }
-        std::string name() const { return ptr->name(); }
-        auto getPtr() const { return ptr;}
- }
- template<typename T>
- T any_cast(const any& a){
-     return std::dynamic_pointer_cast<Child<T>>(a.getPtr())->getValue();
-     // 将父类指针安全转为子类指针,用dynamic_pointer_cast
- }
- */
+#include "Util.h"
 
 namespace DS {
+    /**
+     * 仿照 std::any 实现了 DS::any.
+     */
     class Base {
     public:
-        virtual std::string name() { return "Base"; }
+        virtual std::string type() = 0;
     };
 
     template<typename T>
@@ -51,9 +22,9 @@ namespace DS {
         std::string type_info;
         T value;
     public:
-        std::string name() override { return type_info; }
+        std::string type() override { return type_info; }
 
-        Child(const T &t) : value(t) { /*getTypeInfo(type_info);*/ }
+        explicit Child(T t) : value(t), type_info(DS::type_name<decltype(t)>()) {}
 
         T getValue() const { return value; }
     };
@@ -65,17 +36,29 @@ namespace DS {
         auto getPtr() const { return ptr; }
 
         template<typename T>
-        any(const T &t) {
+        explicit any(T t) {
             auto child_ptr = std::make_shared<Child<T>>(Child<T>(t));
             ptr = std::static_pointer_cast<Base>(child_ptr);
+            // 将子类指针转为父类shared_ptr(go up class hierarchy),用static_pointer_cast.
         }
 
-        std::string name() const { return ptr->name(); }
+        std::string type() const { return ptr->type(); }
+    };
+
+    class any_cast_error : public std::logic_error {
+    public:
+        explicit any_cast_error(const std::string &error) : logic_error(error) {}
     };
 
     template<typename T>
     T any_cast(const any &any) {
-        return std::dynamic_pointer_cast<Child<T>>(any.getPtr())->getValue();
+        auto cast_ret = std::dynamic_pointer_cast<Child<T>>(any.getPtr());
+        // 将父类指针安全转为子类指针(go down class hierarchy safety),用dynamic_pointer_cast
+        if (cast_ret != nullptr) {
+            return cast_ret->getValue();
+        } else {
+            throw any_cast_error("Dynamic Cast Error. The actual value type is : " + any.type());
+        }
     }
 }
 #endif //DATASTRUCTURE_ANY_VARIANT_H
