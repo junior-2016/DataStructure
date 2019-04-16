@@ -36,6 +36,37 @@ namespace DS {
      * eg: if ( std::any.type() == typeid(int) ) return int_type;
      *
      * 如果限制了范围,还可以用std::variant来实现,这样在构造List的时候也能进行限制.
+     *
+     * 后续更新:
+     * 删除 std::initializer_list<T> 以及用于判断是由List({x})生成的还是List(x)生成的is_single.
+     * 因为利用 List(std::initializer<List>) 构造器 和 接收任意类型的单一元素构造器List(T&t)就可以处理任何情况了,
+     * 而限制同一类型的初始化列表作为参数的构造器是没有必要出现的.
+     * 并且这样修改后,data容器持有的数据最多只有一个,所有持有数据的List都是单一元素List,那么
+     * 后面需要修改data为: std::shared_ptr<type_t> data_ptr,
+     * 然后通过data_ptr是否为null来判断List有没有持有数据.
+     *
+     * 通过这样的修改,可以明确List的数据结构其实就是一个支持任意多种类型数据作为叶子的多叉树,
+     * List list = { {"a", {'b', 77) },{ 5, 6.36 }, 3.14f}
+     *                       list
+     *             A           B          C
+     *        "a"     D     5    6.36    3.14f
+     *            'b'   77
+     * 构造函数返回的List对象就是多叉树的根,然后往下递归构造的List对象是多叉树的中间节点,最后递归
+     * 构造的List(T&t)生成的List对象是叶子节点(叶子节点所在的List对象,其data字段非空指针,lists字段则没有任何元素).
+     * List 的构造就是将序列化的字符串(类似Json字符串)转为多叉树数据结构,并且支持叶子节点为多种类型;
+     * List 储存的flat_string就是遍历整个多叉树后形成的序列(树的序列化操作,但是生成的序列还加入了其他信息,和原序列有些不同了),
+     * List 的静态方法flat其实就是对多叉树的一种遍历过程,并且返回一个只有两层的多叉树list(顶层为list,第二层都是叶子节点),
+     * 你可以认为flat把所有的叶子收集起来,统一放在第二层.
+     * List 的append方法是将一颗多叉树插在最后一个叶子节点上变成一个子树; insert 是往多叉树某个节点上插入一个新的子树
+     *
+     * 如果将List作为多叉树来看, 后面可以引入的新接口还有不少:
+     * TODO: 引入多种多叉树遍历接口(先序/后序)
+     *
+     * 这样支持多种类型做叶子的多叉树有几种用途:
+     * 1. 引入B+的设计,做成数据库储存结构(支持叶子节点多类型是基本要求)
+     * 2. 浏览器或者文件系统的 Dom(Document) 文件树结构
+     * 3. Json字符串解析后的解析树.
+     * TODO: 考虑实现上面三条应用.
      */
 
     class List {
@@ -89,41 +120,13 @@ namespace DS {
             }
         }
 
-        std::vector<type_t> data; // 要求容器里塞各种类型的值,使用std::any对象管理.
+        std::shared_ptr<type_t> data = nullptr;
         std::vector<List> lists;
-        bool is_single = false;
         std::string flat_string;
 
         void getFlatString(const List &list) {
-            if (!list.data.empty()) {
-                if (list.data.size() == 1 && list.is_single) {
-                    flat_string += (to_string(list.data[0]));
-                } else {
-                    // 去掉accumulate的写法,因为不好阅读和调试
-                    /*
-                    flat_string += ("{")
-                                   + (std::accumulate(
-                            std::next(list.data.begin()),
-                            list.data.end(),
-                            to_string(list.data[0]),
-                            [](std::string a, type b) -> std::string {
-                                // 注意聚合函数的参数:首先把 list.data[0] 变为 std::string.
-                                // 然后根据聚合函数参数,依次执行:
-                                // f (init:string, data[1]:type) => result1:string;
-                                // f (result1:string, data[2]:type) => result2:string;
-                                // f (result2:string, data[3]:type) => result3:string;
-                                // .......
-                                // 如果聚合函数参数类型没有写对,会报错.
-                                return std::move(a) + ',' + to_string(b);
-                            }))
-                                   + ('}');
-                    */
-                    flat_string += "{";
-                    for (auto i = list.data.begin(); i != list.data.end(); ++i) {
-                        flat_string += to_string(*i) + (i + 1 == list.data.end() ? "" : ",");
-                    }
-                    flat_string += "}";
-                }
+            if (list.data != nullptr) {
+                flat_string += to_string(*list.data);
                 return;
             }
             flat_string += ("{");
@@ -192,35 +195,34 @@ namespace DS {
         List() = delete;
 
         template<typename T>
-        List(const T &t) { // 解析由单个type组成的list
-            data.push_back(type_t(t)); // 这里将 T&t 变为type类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
-            is_single = true;
-            lists.push_back(*this);
+        List(const T &t) { // 解析由单个值组成的list,这里可以接收任意类型,但是下面会通过type_t(t)在编译期检查是否合法
+            data = std::make_shared<type_t>(type_t(t));// 这里将T&t变为type_t类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
+            // lists.push_back(*this); // 这里构造的List为多叉树叶子节点,所以lists容器为空
             refresh_flat_string();
         }
 
-        explicit List(std::vector<type_t> &vector) : data(vector) {
+        List(std::initializer_list<List> list) { // 解析由多个list组成的List对象,可以认为是解析多叉树中间节点
+            for (auto &item:list) {
+                lists.push_back(item);
+            }
+            refresh_flat_string();
+        }
+
+        explicit List(std::vector<type_t> &vector) {
             for (auto &item:vector) {
                 lists.emplace_back(item);
             }
             refresh_flat_string();
         }
 
-        template<typename T>
-        List(std::initializer_list<T> list) { // 解析由多个type组成的List对象
-            for (auto &item:list) {
-                data.push_back(type_t(item));
-                lists.emplace_back(item);
-            }
-            refresh_flat_string();
-        }
-
-        List(std::initializer_list<List> list) { // 解析由多个list组成的List对象
-            for (auto &item:list) {
-                lists.push_back(item);
-            }
-            refresh_flat_string();
-        }
+//        template<typename T>
+//        List(std::initializer_list<T> list) {
+//            for (auto &item:list) {
+//                data.push_back(type_t(item));
+//                lists.emplace_back(item);
+//            }
+//            refresh_flat_string();
+//        }
 
         void append(const List &list) {
             lists.push_back(list);
@@ -300,10 +302,8 @@ namespace DS {
             // 直接写明函数类型的lambda函数,这种情况下可以直接用 [&f] 捕获函数变量,
             // 然后在函数体里直接递归调用.
             std::function<void(const List &)> f = [&f, &record](const List &list) -> void {
-                if (!list.data.empty()) {
-                    for (auto &item:list.data) {
-                        record.push_back(item);
-                    }
+                if (list.data != nullptr) {
+                    record.push_back(*list.data);
                     return;
                 }
                 for (auto &item:list.lists) {
