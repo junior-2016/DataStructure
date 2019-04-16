@@ -44,7 +44,7 @@ namespace DS {
         typedef std::variant<int, double, float, char, long, long long, long double,
                 unsigned, unsigned long, unsigned long long, std::string, const char *,
                 std::vector<int> > type;*/
-        // 使用 using xxx = type 来代替C语言的 typedef.
+        // 使用 using xxx = type 来代替C语言的 typedef(类型别名)
         using type_t = std::variant<int, double, float, char, long, long long, long double,
                 unsigned, unsigned long, unsigned long long, std::string, const char *,
                 std::vector<int> >;
@@ -156,7 +156,7 @@ namespace DS {
         /*
         typedef typename std::vector<List>::const_iterator const_iterator;
         typedef typename std::vector<List>::iterator iterator;*/
-        // 使用 using xxx = type 来代替C语言的 typedef.
+        // 使用 using xxx = type 来代替C语言的 typedef(类型别名)
         using const_iterator = typename std::vector<List>::const_iterator;
         using iterator = typename std::vector<List>::iterator;
 
@@ -193,7 +193,7 @@ namespace DS {
 
         template<typename T>
         List(const T &t) { // 解析由单个type组成的list
-            data.push_back(type(t)); // 这里将 T&t 变为type类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
+            data.push_back(type_t(t)); // 这里将 T&t 变为type类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
             is_single = true;
             lists.push_back(*this);
             refresh_flat_string();
@@ -209,7 +209,7 @@ namespace DS {
         template<typename T>
         List(std::initializer_list<T> list) { // 解析由多个type组成的List对象
             for (auto &item:list) {
-                data.push_back(type(item));
+                data.push_back(type_t(item));
                 lists.emplace_back(item);
             }
             refresh_flat_string();
