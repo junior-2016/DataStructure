@@ -42,6 +42,14 @@ void TEST_LIST() {
     list.append(flat_list);
     cout << list << list.size() << "\n";
 
+    list.insert(list.cbegin() + 2, List({"insert list in here"}));
+    cout << list << list.size() << "\n";
+
+    list.insert(list.cbegin(), List(std::string("insert string in here")));
+    cout << list << list.size() << "\n";
+
+    cout << List::flat(list).size() << "\n";
+
     cout << "---------------------------------------------\n\n";
 }
 

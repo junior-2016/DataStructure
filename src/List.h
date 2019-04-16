@@ -54,7 +54,7 @@ namespace DS {
                     case 2:
                         return std::to_string(std::get<float>(t));
                     case 3:
-                        return std::string("") + std::get<char>(t);
+                        return std::string("\'") + std::get<char>(t) + std::string("\'");
                     case 4:
                         return std::to_string(std::get<long>(t));
                     case 5:
@@ -68,9 +68,9 @@ namespace DS {
                     case 9:
                         return std::to_string(std::get<unsigned long long>(t));
                     case 10:
-                        return std::get<std::string>(t);
+                        return "std::string[\"" + std::get<std::string>(t) + "\"]";
                     case 11:
-                        return std::string(std::get<const char *>(t));
+                        return "\"" + std::string(std::get<const char *>(t)) + "\"";
                     case 12:
                         auto &v = std::get<std::vector<int>>(t);
                         std::string s = "vector<int>[";
