@@ -40,11 +40,16 @@ namespace DS {
 
     class List {
     public:
+        /*
         typedef std::variant<int, double, float, char, long, long long, long double,
                 unsigned, unsigned long, unsigned long long, std::string, const char *,
-                std::vector<int> > type;
+                std::vector<int> > type;*/
+        // 使用 using xxx = type 来代替C语言的 typedef.
+        using type_t = std::variant<int, double, float, char, long, long long, long double,
+                unsigned, unsigned long, unsigned long long, std::string, const char *,
+                std::vector<int> >;
     private:
-        static std::string to_string(const type &t) {
+        static std::string to_string(const type_t &t) {
             try {
                 switch (t.index()) {
                     case 0:
@@ -84,7 +89,7 @@ namespace DS {
             }
         }
 
-        std::vector<type> data; // 要求容器里塞各种类型的值,使用std::any对象管理.
+        std::vector<type_t> data; // 要求容器里塞各种类型的值,使用std::any对象管理.
         std::vector<List> lists;
         bool is_single = false;
         std::string flat_string;
@@ -148,8 +153,12 @@ namespace DS {
          * 例如 T *t = template variable.template_function<T>(Args ...);
          * 调用某个模板函数,但是这个模板函数的类型是<T>,是未确定的(依赖于具体的运行情况),所以需要加上 template 前缀.
          */
+        /*
         typedef typename std::vector<List>::const_iterator const_iterator;
-        typedef typename std::vector<List>::iterator iterator;
+        typedef typename std::vector<List>::iterator iterator;*/
+        // 使用 using xxx = type 来代替C语言的 typedef.
+        using const_iterator = typename std::vector<List>::const_iterator;
+        using iterator = typename std::vector<List>::iterator;
 
         // 可修改的begin迭代器和end迭代器
         iterator begin() {
@@ -190,7 +199,7 @@ namespace DS {
             refresh_flat_string();
         }
 
-        explicit List(std::vector<type> &vector) : data(vector) {
+        explicit List(std::vector<type_t> &vector) : data(vector) {
             for (auto &item:vector) {
                 lists.emplace_back(item);
             }
@@ -267,7 +276,7 @@ namespace DS {
         }
 
         static List flat(const List &list) {
-            std::vector<type> record;
+            std::vector<type_t> record;
 
             // 带auto-推导的递归lambda函数,因为类型推导需要解释整一个lambda表达式才能确定,
             // 因此无法用[&f1]捕获f1,故而无法直接在函数里递归调用f1.

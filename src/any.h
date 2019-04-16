@@ -2,15 +2,15 @@
 // Created by junior on 19-4-16.
 //
 
-#ifndef DATASTRUCTURE_ANY_VARIANT_H
-#define DATASTRUCTURE_ANY_VARIANT_H
+#ifndef DATASTRUCTURE_ANY_H
+#define DATASTRUCTURE_ANY_H
 
 #include <memory>
 #include "Util.h"
 
 namespace DS {
     /**
-     * 仿照 std::any 实现了 DS::any.
+     * 仿照 std::any 实现 DS::any.
      */
     class Base {
     public:
@@ -61,4 +61,4 @@ namespace DS {
         }
     }
 }
-#endif //DATASTRUCTURE_ANY_VARIANT_H
+#endif //DATASTRUCTURE_ANY_H

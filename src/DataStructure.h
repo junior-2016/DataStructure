@@ -7,7 +7,8 @@
 
 #include "MultiArray.h"
 #include "List.h"
-#include "any_variant.h"
+#include "variant.h"
+#include "any.h"
 
 namespace DS {
     template<typename T, size_t N, size_t ...Ns>
