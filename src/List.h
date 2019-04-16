@@ -24,8 +24,10 @@ namespace DS {
      *
      * List要求储存各种类型数据,所以List的class本身不需要模板,取而代之的是在List的构造函数上使用模板,即:
      * template<typename T> List(const T& t), 这样就可以接收任意类型作为List的构造参数了.
-     * 并且这里的模板构造函数调用时,不需要写成 List<Type> list(Arg), 原因很简单,直接通过传递的参数Arg就可以得到类型T的信息,不需要显式写出,
-     * 显式写出反而是错误的(只有一种模板函数调用时需要声明类型信息: template<typename T> f(){...} 即没有利用T做参数的时候,但是这种情况基本可以忽略).
+     * 并且这里的模板构造函数调用时,不需要写成 List<Type> list(Arg), 原因很简单,
+     * 直接通过传递的参数Arg就可以得到类型T的信息,不需要显式写出,显式写出反而是错误的
+     * ( PS: 只有一种情况,模板函数调用时需要声明类型信息,即没有利用 T 做参数的时候,例如下面:
+     *   template<typename T> void f(){...} 或者 template<typename T> T f() {...} )
      * 因此, 正确的构造方式可以是 List list(5); List list(5.25); List list(std::string("list")); 等等
      * 但是,这样得到的多种类型数据怎么存在同一个容器里? 这时就要使用 std::any(C++17) 或者 boost::any 来管理.
      * 另一个问题是如何正确解析出容器里的每一个值,采用的方法是 std::any_cast<element_type>(element),

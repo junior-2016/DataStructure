@@ -46,6 +46,8 @@ void TEST_LIST() {
 }
 
 int main() {
+    DS::any any(std::vector<int>{1, 2, 3});
+    std::cout << DS::any_cast<vector<int>>(any).size() << "\n";
     TEST_LIST();
     return 0;
 }
