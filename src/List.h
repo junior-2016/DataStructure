@@ -216,8 +216,53 @@ namespace DS {
             refresh_flat_string();
         }
 
-        // TODO: 加入与vector对应的 insert 接口
+        iterator insert(iterator pos, const List &list) {
+            auto ret = lists.insert(pos, list);
+            refresh_flat_string();
+            return ret;
+        }
 
+        iterator insert(const_iterator pos, const List &list) {
+            auto ret = lists.insert(pos, list);
+            refresh_flat_string();
+            return ret;
+        }
+
+        iterator insert(const_iterator pos, List &&list) {
+            auto ret = lists.insert(pos, list);
+            refresh_flat_string();
+            return ret;
+        }
+
+        void insert(iterator pos, size_t count, const List &list) {
+            lists.insert(pos, count, list);
+            refresh_flat_string();
+        }
+
+        iterator insert(const_iterator pos, size_t count, const List &list) {
+            auto ret = lists.insert(pos, count, list);
+            refresh_flat_string();
+            return ret;
+        }
+
+        iterator insert(const_iterator pos, std::initializer_list<List> llist) {
+            auto ret = lists.insert(pos, llist);
+            refresh_flat_string();
+            return ret;
+        }
+
+        template<class InputItr>
+        void insert(iterator pos, InputItr first, InputItr last) {
+            lists.insert(pos, first, last);
+            refresh_flat_string();
+        }
+
+        template<class InputItr>
+        iterator insert(const_iterator pos, InputItr first, InputItr last) {
+            auto ret = lists.insert(pos, first, last);
+            refresh_flat_string();
+            return ret;
+        }
 
         static List flat(const List &list) {
             std::vector<type> record;
