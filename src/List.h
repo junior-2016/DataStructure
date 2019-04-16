@@ -9,9 +9,9 @@
 #include <iostream>
 #include <functional>
 #include <numeric>
-#include <any>
 #include <variant>
 #include <memory>
+#include <sstream>
 #include "Util.h"
 
 namespace DS {
@@ -33,75 +33,52 @@ namespace DS {
      * (type_info只能得到类型的字符串名称), 那唯一的方法只能采用判断的的方法,限定在几个特殊的类型里:
      * eg: if ( std::any.type() == typeid(int) ) return int_type;
      *
-//   另外一种方案:
-//   如果限制了范围,还可以用std::variant来实现,这样在构造List的时候也能进行限制,例:
-//        std::vector<std::variant<int, double, std::string, char, const char *, std::vector<int>>> container;
-//        container.emplace_back(1);
-//        container.emplace_back(1.233);
-//        container.emplace_back("hello world");
-//        container.emplace_back(std::string("yellow"));
-//        container.emplace_back('c');
-//        container.push_back(std::vector<int>{45, 77});
-//        for (auto &item:container) {
-//            std::cout << item.index() << "\n";
-//            switch (item.index()) {
-//                case 0:
-//                    cout << std::get<int>(item) << "\n";
-//                    break;
-//                case 1:
-//                    cout << std::get<double>(item) << "\n";
-//                    break;
-//                case 2:
-//                    cout << std::get<std::string>(item) << "\n";
-//                    break;
-//                case 3:
-//                    cout << std::get<char>(item) << "\n";
-//                    break;
-//                case 4:
-//                    cout << std::string(std::get<const char *>(item)) << "\n";
-//                    break;
-//                case 5:
-//                    cout << (std::get<std::vector<int>>(item)).size() << "\n";
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
+     * 如果限制了范围,还可以用std::variant来实现,这样在构造List的时候也能进行限制.
      */
 
     class List {
-    private:
+    public:
         typedef std::variant<int, double, float, char, long, long long, long double,
-                unsigned, unsigned long, unsigned long long, std::string, const char *> type;
-
+                unsigned, unsigned long, unsigned long long, std::string, const char *,
+                std::vector<int> > type;
+    private:
         static std::string to_string(const type &t) {
-            switch (t.index()) {
-                case 0:
-                    return std::to_string(std::get<int>(t));
-                case 1:
-                    return std::to_string(std::get<double>(t));
-                case 2:
-                    return std::to_string(std::get<float>(t));
-                case 3:
-                    return std::string("") + std::get<char>(t);
-                case 4:
-                    return std::to_string(std::get<long>(t));
-                case 5:
-                    return std::to_string(std::get<long long>(t));
-                case 6:
-                    return std::to_string(std::get<long double>(t));
-                case 7:
-                    return std::to_string(std::get<unsigned>(t));
-                case 8:
-                    return std::to_string(std::get<unsigned long>(t));
-                case 9:
-                    return std::to_string(std::get<unsigned long long>(t));
-                case 10:
-                    return std::get<std::string>(t);
-                case 11:
-                    return std::string(std::get<const char *>(t));
-                default:
-                    return "element cast error";
+            try {
+                switch (t.index()) {
+                    case 0:
+                        return std::to_string(std::get<int>(t));
+                    case 1:
+                        return std::to_string(std::get<double>(t));
+                    case 2:
+                        return std::to_string(std::get<float>(t));
+                    case 3:
+                        return std::string("") + std::get<char>(t);
+                    case 4:
+                        return std::to_string(std::get<long>(t));
+                    case 5:
+                        return std::to_string(std::get<long long>(t));
+                    case 6:
+                        return std::to_string(std::get<long double>(t));
+                    case 7:
+                        return std::to_string(std::get<unsigned>(t));
+                    case 8:
+                        return std::to_string(std::get<unsigned long>(t));
+                    case 9:
+                        return std::to_string(std::get<unsigned long long>(t));
+                    case 10:
+                        return std::get<std::string>(t);
+                    case 11:
+                        return std::string(std::get<const char *>(t));
+                    case 12:
+                        auto &v = std::get<std::vector<int>>(t);
+                        std::string s = "vector<int>[";
+                        for (auto i = v.begin(); i != v.end(); ++i) {
+                            s += std::to_string(*i) + (i + 1 == v.end() ? "" : ",");
+                        }
+                        return s += "]";
+                }
+            } catch (const std::bad_variant_access &e) {
+                std::cerr << e.what() << "\n";
             }
         }
 
@@ -114,29 +91,27 @@ namespace DS {
             if (!list.data.empty()) {
                 if (list.data.size() == 1 && list.is_single) {
                     flat_string += (to_string(list.data[0]));
-                    // TODO: cast 异常捕获
                 } else {
+                    // 去掉accumulate的写法,因为不好阅读和调试
                     /*
-                    // 删除accumulate的写法,因为不好阅读和调试
                     flat_string += ("{")
                                    + (std::accumulate(
                             std::next(list.data.begin()),
                             list.data.end(),
-                            to_string(std::any_cast<decltype(list.data[0])>(list.data[0])),
-                            [](std::string a, std::any b) -> std::string {
+                            to_string(list.data[0]),
+                            [](std::string a, type b) -> std::string {
                                 // 注意聚合函数的参数:首先把 list.data[0] 变为 std::string.
                                 // 然后根据聚合函数参数,依次执行:
-                                // f (init:string, data[1]:T) => result1:string;
-                                // f (result1:string, data[2]:T) => result2:string;
-                                // f (result2:string, data[3]:T) => result3:string;
+                                // f (init:string, data[1]:type) => result1:string;
+                                // f (result1:string, data[2]:type) => result2:string;
+                                // f (result2:string, data[3]:type) => result3:string;
                                 // .......
                                 // 如果聚合函数参数类型没有写对,会报错.
-                                return std::move(a) + ',' + to_string(std::any_cast<decltype(b)>(b));
+                                return std::move(a) + ',' + to_string(b);
                             }))
                                    + ('}');
                     */
                     flat_string += "{";
-
                     for (auto i = list.data.begin(); i != list.data.end(); ++i) {
                         flat_string += to_string(*i) + (i + 1 == list.data.end() ? "" : ",");
                     }
@@ -206,8 +181,8 @@ namespace DS {
         List() = delete;
 
         template<typename T>
-        List(const T &t) { // 解析由单个int形成的List对象,即0维度
-            data.push_back(type(t));
+        List(const T &t) { // 解析由单个type组成的list
+            data.push_back(type(t)); // 这里将 T&t 变为type类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
             is_single = true;
             lists.push_back(*this);
             refresh_flat_string();
@@ -221,7 +196,7 @@ namespace DS {
         }
 
         template<typename T>
-        List(std::initializer_list<T> list) { // 解析由多个int组成的List对象,即1维度
+        List(std::initializer_list<T> list) { // 解析由多个type组成的List对象
             for (auto &item:list) {
                 data.push_back(type(item));
                 lists.emplace_back(item);
@@ -245,7 +220,6 @@ namespace DS {
 
 
         static List flat(const List &list) {
-
             std::vector<type> record;
 
             // 带auto-推导的递归lambda函数,因为类型推导需要解释整一个lambda表达式才能确定,

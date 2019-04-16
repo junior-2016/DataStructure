@@ -1,6 +1,5 @@
 #include "src/DataStructure.h"
 #include <iostream>
-#include <variant>
 
 using namespace std;
 
@@ -16,7 +15,12 @@ void TEST_LIST() {
     cout << "-------------TEST LIST--------------------\n";
 
     List list({{{1, 2, 3}, {1, 2, 3.1415926535}}, 5, {6, 7, {1, 4, 5}, {33, {24, 5}}},
-               {{4}, {1, 2}}, 88, {1, 5}, {1, 3, std::string("Hello World"),"My favorite"}, 7});
+               {{4}, {1, 2}}, 88, {1, 5}, {1, 3, std::string("Hello World"), "My favorite"}, 7});
+    List list1({1, {"25", 1.23}, std::vector<int>({1, 2})});
+    cout << list1 << list1.size() << "\n";
+
+    cout << List::flat(list1);
+
     cout << list << list.size() << "\n";
 
     List flat_list = List::flat(list);
