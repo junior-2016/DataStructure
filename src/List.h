@@ -10,6 +10,8 @@
 #include <functional>
 #include <numeric>
 #include <any>
+#include <variant>
+#include <memory>
 #include "Util.h"
 
 namespace DS {
@@ -20,17 +22,90 @@ namespace DS {
      *                        List(std::string("c++ string")), List("c string") };
      * 这其中 List(const T& t) 是最重要最基础的构造函数.
      *
-     * 另外,List要求储存各种类型数据,所以List的class本身不需要模板,取而代之的是在List的构造函数上使用模板,即:
+     * List要求储存各种类型数据,所以List的class本身不需要模板,取而代之的是在List的构造函数上使用模板,即:
      * template<typename T> List(const T& t), 这样就可以接收任意类型作为List的构造参数了.
      * 并且这里的模板构造函数调用时,不需要写成 List<Type> list(Arg), 原因很简单,直接通过传递的参数Arg就可以得到类型T的信息,不需要显式写出,
      * 显式写出反而是错误的(只有一种模板函数调用时需要声明类型信息: template<typename T> f(){...} 即没有利用T做参数的时候,但是这种情况基本可以忽略).
      * 因此, 正确的构造方式可以是 List list(5); List list(5.25); List list(std::string("list")); 等等
      * 但是,这样得到的多种类型数据怎么存在同一个容器里? 这时就要使用 std::any(C++17) 或者 boost::any 来管理.
-     * 另一个问题是如何正确解析出容器里的每一个值,这里采用的方法是 std::any_cast<decltype(element)>(element),暂时不处理解析过程的异常...
+     * 另一个问题是如何正确解析出容器里的每一个值,采用的方法是 std::any_cast<element_type>(element),
+     * 但是 element_type 如何获得,这个就很麻烦了, 因为std::any只有一个type_info信息,完全不能基于type_info得到类型
+     * (type_info只能得到类型的字符串名称), 那唯一的方法只能采用判断的的方法,限定在几个特殊的类型里:
+     * eg: if ( std::any.type() == typeid(int) ) return int_type;
+     *
+//   另外一种方案:
+//   如果限制了范围,还可以用std::variant来实现,这样在构造List的时候也能进行限制,例:
+//        std::vector<std::variant<int, double, std::string, char, const char *, std::vector<int>>> container;
+//        container.emplace_back(1);
+//        container.emplace_back(1.233);
+//        container.emplace_back("hello world");
+//        container.emplace_back(std::string("yellow"));
+//        container.emplace_back('c');
+//        container.push_back(std::vector<int>{45, 77});
+//        for (auto &item:container) {
+//            std::cout << item.index() << "\n";
+//            switch (item.index()) {
+//                case 0:
+//                    cout << std::get<int>(item) << "\n";
+//                    break;
+//                case 1:
+//                    cout << std::get<double>(item) << "\n";
+//                    break;
+//                case 2:
+//                    cout << std::get<std::string>(item) << "\n";
+//                    break;
+//                case 3:
+//                    cout << std::get<char>(item) << "\n";
+//                    break;
+//                case 4:
+//                    cout << std::string(std::get<const char *>(item)) << "\n";
+//                    break;
+//                case 5:
+//                    cout << (std::get<std::vector<int>>(item)).size() << "\n";
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
      */
+
     class List {
     private:
-        std::vector<std::any> data; // 要求容器里塞各种类型的值,使用std::any对象管理.
+        typedef std::variant<int, double, float, char, long, long long, long double,
+                unsigned, unsigned long, unsigned long long, std::string, const char *> type;
+
+        static std::string to_string(const type &t) {
+            switch (t.index()) {
+                case 0:
+                    return std::to_string(std::get<int>(t));
+                case 1:
+                    return std::to_string(std::get<double>(t));
+                case 2:
+                    return std::to_string(std::get<float>(t));
+                case 3:
+                    return std::string("") + std::get<char>(t);
+                case 4:
+                    return std::to_string(std::get<long>(t));
+                case 5:
+                    return std::to_string(std::get<long long>(t));
+                case 6:
+                    return std::to_string(std::get<long double>(t));
+                case 7:
+                    return std::to_string(std::get<unsigned>(t));
+                case 8:
+                    return std::to_string(std::get<unsigned long>(t));
+                case 9:
+                    return std::to_string(std::get<unsigned long long>(t));
+                case 10:
+                    return std::get<std::string>(t);
+                case 11:
+                    return std::string(std::get<const char *>(t));
+                default:
+                    return "element cast error";
+            }
+        }
+
+        std::vector<type> data; // 要求容器里塞各种类型的值,使用std::any对象管理.
         std::vector<List> lists;
         bool is_single = false;
         std::string flat_string;
@@ -38,9 +113,11 @@ namespace DS {
         void getFlatString(const List &list) {
             if (!list.data.empty()) {
                 if (list.data.size() == 1 && list.is_single) {
-                    flat_string += (to_string(std::any_cast<decltype(list.data[0])>(list.data[0])));
+                    flat_string += (to_string(list.data[0]));
                     // TODO: cast 异常捕获
                 } else {
+                    /*
+                    // 删除accumulate的写法,因为不好阅读和调试
                     flat_string += ("{")
                                    + (std::accumulate(
                             std::next(list.data.begin()),
@@ -57,6 +134,13 @@ namespace DS {
                                 return std::move(a) + ',' + to_string(std::any_cast<decltype(b)>(b));
                             }))
                                    + ('}');
+                    */
+                    flat_string += "{";
+
+                    for (auto i = list.data.begin(); i != list.data.end(); ++i) {
+                        flat_string += to_string(*i) + (i + 1 == list.data.end() ? "" : ",");
+                    }
+                    flat_string += "}";
                 }
                 return;
             }
@@ -123,13 +207,13 @@ namespace DS {
 
         template<typename T>
         List(const T &t) { // 解析由单个int形成的List对象,即0维度
-            data.push_back(std::any(t));
+            data.push_back(type(t));
             is_single = true;
             lists.push_back(*this);
             refresh_flat_string();
         }
 
-        explicit List(std::vector<std::any> &vector) : data(vector) {
+        explicit List(std::vector<type> &vector) : data(vector) {
             for (auto &item:vector) {
                 lists.emplace_back(item);
             }
@@ -139,7 +223,7 @@ namespace DS {
         template<typename T>
         List(std::initializer_list<T> list) { // 解析由多个int组成的List对象,即1维度
             for (auto &item:list) {
-                data.push_back(std::any(item));
+                data.push_back(type(item));
                 lists.emplace_back(item);
             }
             refresh_flat_string();
@@ -162,7 +246,7 @@ namespace DS {
 
         static List flat(const List &list) {
 
-            std::vector<std::any> record;
+            std::vector<type> record;
 
             // 带auto-推导的递归lambda函数,因为类型推导需要解释整一个lambda表达式才能确定,
             // 因此无法用[&f1]捕获f1,故而无法直接在函数里递归调用f1.
