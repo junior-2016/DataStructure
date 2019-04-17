@@ -51,11 +51,11 @@ namespace DS {
         return r;
     }
 
-    // 使用 std::accumulate 实现容器元素拼接为字符串
+    // 使用 std::accumulate 实现容器元素拼接为字符串.默认的中间分割串为","
     template<typename Container>
     std::string to_string(const Container &container, const std::string &delimiter = ",") {
         if (container.empty()) return "";
-        if (container.size()==1) return std::string(*container.begin());
+        if (container.size()==1) return std::to_string(*container.begin());
         return std::accumulate(std::next(container.begin()), container.end(),
                                std::to_string(*container.begin()),
                                [&delimiter](std::string a, typename Container::value_type b)

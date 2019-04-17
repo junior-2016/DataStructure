@@ -1,63 +1,68 @@
 //
 // Created by junior on 19-4-17.
 //
+#ifndef DATASTRUCTURE_DATASTRUCTUREIMPL_H
+#define DATASTRUCTURE_DATASTRUCTUREIMPL_H
+
 #include "DataStructure.h"
 
 namespace DS {
+    /**
+     * 测试要点:
+     * 1. 测试时为了防止名称空间发生污染(比如std::to_string和DS::to_string),不使用using指令;
+     */
+
     void TEST_MULTI_ARRAY() {
-        using namespace std;
-        cout << "--------------TEST MULTI ARRAY----------------\n";
+        std::cout << "--------------TEST MULTI ARRAY----------------\n";
         DS::MultiArray<int, 4, 5, 6, 7, 8, 10, 11> array1;
         std::cout << array1[2][3][4][5][6][4][8] << std::endl;
-        cout << "----------------------------------------------\n\n";
+        std::cout << "----------------------------------------------\n\n";
     }
 
     void TEST_LIST() {
-        using namespace std;
-        cout << "-------------TEST LIST--------------------\n";
+        std::cout << "-------------TEST LIST--------------------\n";
 
         DS::List list({{{1, 2, 3}, {1, 2, 3.1415926535}}, 5, {6, 7, {1, 4, 5}, {33, {24, 5}}},
                        {{4}, {1, 2}}, 88, {1, 5}, {1, 3, std::string("Hello World"), "My favorite"}, 7});
         DS::List list1({1, {"25", 1.23}, std::vector<int>({1, 2})});
-        cout << list1 << list1.size() << "\n";
+        std::cout << list1 << list1.size() << "\n";
 
-        cout << DS::List::flat(list1);
+        std::cout << DS::List::flat(list1);
 
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         DS::List flat_list = DS::List::flat(list);
-        cout << flat_list << flat_list.size() << "\n";
+        std::cout << flat_list << flat_list.size() << "\n";
 
         for (const auto &i : list) { // for-ranged loop
-            cout << i;
+            std::cout << i;
         }
 
         list.append(1);
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         list.append(List(6));
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         list.append({5, 5, {7, 8}});
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         list.append(flat_list);
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         list.insert(list.cbegin() + 2, List({"insert list in here"}));
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
         list.insert(list.cbegin(), List(std::string("insert string in here")));
-        cout << list << list.size() << "\n";
+        std::cout << list << list.size() << "\n";
 
-        cout << DS::List::flat(list).size() << "\n";
+        std::cout << DS::List::flat(list).size() << "\n";
 
-        cout << "---------------------------------------------\n\n";
+        std::cout << "---------------------------------------------\n\n";
     }
 
     void TEST_ANY_VARIANT() {
-        using namespace std;
-        cout << "---------------TEST ANY VARIANT------------------\n";
+        std::cout << "---------------TEST ANY VARIANT------------------\n";
         DS::any any(std::vector<int>{1, 2, 3});
         DS::any any1(2.36f);
         const double &d = 6.66;
@@ -72,16 +77,16 @@ namespace DS {
         } catch (const DS::any_cast_error &e) {
             std::cerr << e.what() << "\n";
         }
-        cout << "-------------------------------------------------\n\n";
+        std::cout << "-------------------------------------------------\n\n";
     }
 
     void TEST_CONTAINER_TO_STRING() {
         std::cout << "--------------TEST CONTAINER TO STRING--------------\n";
         std::vector<int> vector = {1, 2};
-        std::cout << DS::to_string<std::vector<int>>(vector) << "\n";
-        std::cout << DS::to_string<std::vector<int>>(vector, ";") << "\n";
         std::vector<int> empty_vector;
         std::vector<int> single_vector = {1};
+        std::cout << DS::to_string<std::vector<int>>(vector) << "\n";
+        std::cout << DS::to_string<std::vector<int>>(vector, ";") << "\n";
         std::cout << DS::to_string<std::vector<int>>(empty_vector) << "\n";
         std::cout << DS::to_string<std::vector<int>>(single_vector) << "\n";
         std::cout << "---------------------------------------------------\n\n";
@@ -94,3 +99,4 @@ namespace DS {
         TEST_ANY_VARIANT();
     }
 }
+#endif //DATASTRUCTURE_DATASTRUCTUREIMPL_H
