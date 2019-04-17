@@ -118,15 +118,18 @@ namespace DS {
             } catch (const std::bad_variant_access &e) {
                 std::cerr << e.what() << "\n";
             }
+            return "";
         }
 
-        std::shared_ptr<type_t> data = nullptr;
-        std::vector<List> lists;
-        std::string flat_string;
+        std::shared_ptr<type_t> data = nullptr; // 当前List对象储存的数据指针,只有叶子节点该字段非空
+        std::vector<List> lists;  // 当前List对象的所有子节点对象
+        std::string flat_string;  // 以当前List对象为根节点的多叉树,序列化后生成的字符串
+        size_t size_;              // 以当前List对象为根节点的多叉树中,所有叶子节点的数量
 
         void getFlatString(const List &list) {
             if (list.data != nullptr) {
                 flat_string += to_string(*list.data);
+                size_++; // 顺便更新size
                 return;
             }
             flat_string += ("{");
@@ -137,8 +140,9 @@ namespace DS {
             flat_string += ("}");
         }
 
-        void refresh_flat_string() {
+        void refresh() {
             flat_string = "";
+            size_ = 0;
             getFlatString(*this);
         }
 
@@ -198,21 +202,21 @@ namespace DS {
         List(const T &t) { // 解析由单个值组成的list,这里可以接收任意类型,但是下面会通过type_t(t)在编译期检查是否合法
             data = std::make_shared<type_t>(type_t(t));// 这里将T&t变为type_t类型(即std::variant),如果没有处于type的类型范围,编译的时候就会报错
             // lists.push_back(*this); // 这里构造的List为多叉树叶子节点,所以lists容器为空
-            refresh_flat_string();
+            refresh();
         }
 
         List(std::initializer_list<List> list) { // 解析由多个list组成的List对象,可以认为是解析多叉树中间节点
             for (auto &item:list) {
                 lists.push_back(item);
             }
-            refresh_flat_string();
+            refresh();
         }
 
         explicit List(std::vector<type_t> &vector) {
             for (auto &item:vector) {
                 lists.emplace_back(item);
             }
-            refresh_flat_string();
+            refresh();
         }
 
 //        template<typename T>
@@ -226,54 +230,54 @@ namespace DS {
 
         void append(const List &list) {
             lists.push_back(list);
-            refresh_flat_string();
+            refresh();
         }
 
         iterator insert(iterator pos, const List &list) {
             auto ret = lists.insert(pos, list);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
         iterator insert(const_iterator pos, const List &list) {
             auto ret = lists.insert(pos, list);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
         iterator insert(const_iterator pos, List &&list) {
             auto ret = lists.insert(pos, list);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
         void insert(iterator pos, size_t count, const List &list) {
             lists.insert(pos, count, list);
-            refresh_flat_string();
+            refresh();
         }
 
         iterator insert(const_iterator pos, size_t count, const List &list) {
             auto ret = lists.insert(pos, count, list);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
         iterator insert(const_iterator pos, std::initializer_list<List> llist) {
             auto ret = lists.insert(pos, llist);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
         template<class InputItr>
         void insert(iterator pos, InputItr first, InputItr last) {
             lists.insert(pos, first, last);
-            refresh_flat_string();
+            refresh();
         }
 
         template<class InputItr>
         iterator insert(const_iterator pos, InputItr first, InputItr last) {
             auto ret = lists.insert(pos, first, last);
-            refresh_flat_string();
+            refresh();
             return ret;
         }
 
@@ -325,9 +329,12 @@ namespace DS {
         }
 
         auto size() const {
-            return lists.size();
+            return size_;
         }
 
+        auto empty() const {
+            return size_ == 0;
+        }
     };
 }
 #endif //DATASTRUCTURE_LIST_H

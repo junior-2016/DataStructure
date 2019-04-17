@@ -51,24 +51,17 @@ namespace DS {
         return r;
     }
 
-    // TODO: 使用 std::accumulate 实现容器元素拼接为字符串
-     std::string f() {
-//         flat_string += ("{")
-//                        + (std::accumulate(
-//                 std::next(list.data.begin()),
-//                 list.data.end(),
-//                 to_string(list.data[0]),
-//                 [](std::string a, type b) -> std::string {
-//                     // 注意聚合函数的参数:首先把 list.data[0] 变为 std::string.
-//                     // 然后根据聚合函数参数,依次执行:
-//                     // f (init:string, data[1]:type) => result1:string;
-//                     // f (result1:string, data[2]:type) => result2:string;
-//                     // f (result2:string, data[3]:type) => result3:string;
-//                     // .......
-//                     // 如果聚合函数参数类型没有写对,会报错.
-//                     return std::move(a) + ',' + to_string(b);
-//                 }))
-//                        + ('}');
-     }
+    // 使用 std::accumulate 实现容器元素拼接为字符串
+    template<typename Container>
+    std::string to_string(const Container &container, const std::string &delimiter = ",") {
+        if (container.empty()) return "";
+        if (container.size()==1) return std::string(*container.begin());
+        return std::accumulate(std::next(container.begin()), container.end(),
+                               std::to_string(*container.begin()),
+                               [&delimiter](std::string a, typename Container::value_type b)
+                                       -> std::string {
+                                   return std::move(a) + delimiter + std::to_string(b);
+                               });
+    }
 }
 #endif //DATASTRUCTURE_UTIL_H
