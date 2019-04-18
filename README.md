@@ -1,7 +1,7 @@
 #### DataStructure
 
 #### Build and Run
-Compiler: g++-8/clang-7; C++ Standard: C++17; OS: Linux Mint19
+Compiler: g++-8 / clang-7; C++ Standard: C++17; OS: Linux Mint19
 
 ##### List
 提供多重嵌套链表,用initialize-list实现显式的多重嵌套链表
