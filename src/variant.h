@@ -163,7 +163,6 @@ namespace DS {
         /*
          * 使用std::enable_if<is_one_of<T,Ts...>::value,void>::type,
          * 在编译期就可以判断set<T>(Args&&...args)的类型T有没有超过variant规定的范围.
-         * 至于 std::enable_if<> 的用法:
          */
         template<typename T, typename ... Args,
                 typename = typename std::enable_if<is_one_of<T, Ts...>::value, void>::type>
@@ -214,7 +213,7 @@ namespace DS {
             return *(v.template data_ptr<T>()); // data_ptr返回const T*,解绑后返回const T&
         } else {
             // 虽然已经检查了T在variant的范围Ts...内,但这里还是需要检查当前variant对象的类型是否为T,如果不是就需要抛出异常
-            throw DS::variant_access_error(("The type of variant is not [" + DS::type_name<T>() + "] now!!!"));
+            throw DS::variant_access_error("The type of variant is not [" + DS::type_name<T>() + "] now!!!");
         }
     }
 

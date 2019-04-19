@@ -56,6 +56,24 @@ std::forward的帮助. 就上面的代码来说,由于转发给other_function时
 - a.f3< int >(5) => f3调用需要明确类型,因为无法根据参数推断类型 T1
 - auto ret = a.f4< int > () => f4调用依旧需要明确类型,同样无法根据参数推断 T1
 
+#### std::enable_if<>
+std::enable_if<>是SFINAE(Substitution Failure Is Not An Error)一个体现,
+SFINAE就是说模板匹配失败不算错误,可以继续寻找新的匹配,如果匹配都失败了才算错误.
+std::enable_if<bool,type>的实现:
+```c++
+template<bool,typename T>
+struct enable_if{};
+template<typename T>
+struct enable_if<true,T>{ typedef T type; }
+```
+也就是说当enable_if<bool,type>里的bool常量表达式为true,enable_if才能持有一个type类型,
+即enable_if<true,T>::type合法,并且enable_if<true,T>::type代表的类型为T;
+如果enable_if<bool,type>里的bool常量表达式为false,那么调用enable<false,T>::type
+非法,编译器会直接报错。这一点在实现 variant 控制类型范围的时候就用到了,使用一个模板
+is_one_of<T,Ts...>判断T是否在Ts...里,如果是返回true,那么std::enable_if(
+is_one_of<T,Ts....>,void)::type就是合法的且type为void,也不会干扰原来的模板函数,
+如果T不在Ts...,is_one_of<T,Ts...>返回false,那么std::enable_if<>::type直接非法,
+编译器报错.
  
 
 
