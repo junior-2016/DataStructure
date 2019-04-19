@@ -62,7 +62,7 @@ namespace DS {
     }
 
     void TEST_ANY() {
-        std::cout << "---------------TEST ANY VARIANT------------------\n";
+        std::cout << "---------------TEST ANY -----------------------\n";
         DS::any any(std::vector<int>{1, 2, 3});
         DS::any any1(2.36f);
         const double &d = 6.66;
@@ -93,17 +93,15 @@ namespace DS {
             variant.set<std::string>("Hello world");
             std::cout << DS::get<std::string>(variant) << "\n";
 
-            /*
-            variant.set<std::vector<int>>(5, 4, 3, 7, 10);
+            variant.set<std::vector<int>>(std::vector<int>{5, 4, 3, 7, 10});
             std::cout << DS::to_string(DS::get<std::vector<int>>(variant)) << "\n";
 
-            variant.set<std::vector<std::string>>("Hello world", "Wo hhh");
+            variant.set<std::vector<std::string>>(std::vector<std::string>{"Hello world", "Wo hhh"});
             std::cout << DS::to_string(DS::get<std::vector<std::string>>(variant)) << "\n";
-             */
 
-        } catch (std::bad_cast &e) {
-            std::cout << e.what() << "\n";
-        } catch (std::bad_variant_access &e) {
+            variant.set<double>(3.14);
+            std::cout << DS::to_string(DS::get<std::vector<int>>(variant)) << "\n"; // 这里会抛出异常....
+        } catch (DS::variant_access_error &e) {
             std::cout << e.what() << "\n";
         }
         std::cout << "---------------------------------------------------\n";

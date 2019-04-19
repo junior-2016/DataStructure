@@ -51,17 +51,41 @@ namespace DS {
         return r;
     }
 
+    std::string to_string(const int &t) { return std::to_string(t); }
+
+    std::string to_string(const unsigned &t) { return std::to_string(t); }
+
+    std::string to_string(const long &t) { return std::to_string(t); }
+
+    std::string to_string(const long long &t) { return std::to_string(t); }
+
+    std::string to_string(const unsigned long &t) { return std::to_string(t); }
+
+    std::string to_string(const unsigned long long &t) { return std::to_string(t); }
+
+    std::string to_string(const float &t) { return std::to_string(t); }
+
+    std::string to_string(const double &t) { return std::to_string(t); }
+
+    std::string to_string(const long double &t) { return std::to_string(t); }
+
+    std::string to_string(const std::string &string) { return string; }
+
+    std::string to_string(const char *str) { return std::string(str); }
+
     // 使用 std::accumulate 实现容器元素拼接为字符串.默认的中间分割串为","
     template<typename Container>
     std::string to_string(const Container &container, const std::string &delimiter = ",") {
-        if (container.empty()) return "";
-        if (container.size()==1) return std::to_string(*container.begin());
-        return std::accumulate(std::next(container.begin()), container.end(),
-                               std::to_string(*container.begin()),
+        if (container.empty()) return "[]";
+        if (container.size() == 1) return "[" + DS::to_string(*container.begin()) + "]";
+
+        return std::string("[") +
+               std::accumulate(std::next(container.begin()), container.end(),
+                               DS::to_string(*container.begin()),
                                [&delimiter](std::string a, typename Container::value_type b)
                                        -> std::string {
-                                   return std::move(a) + delimiter + std::to_string(b);
-                               });
+                                   return std::move(a) + delimiter + DS::to_string(b);
+                               }) + std::string("]");
     }
 }
 #endif //DATASTRUCTURE_UTIL_H

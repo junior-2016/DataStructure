@@ -10,6 +10,7 @@
 #include <utility>
 #include <string>
 #include <set>
+#include "Util.h"
 
 /**
  * 仿照 std::variant 实现 DS::variant (variant是C++上union的替代品)
@@ -53,7 +54,6 @@ namespace DS {
     // 修正:使用模板递归bool值来判断,而不是set.
     template<typename...>
     struct is_one_of;
-
     template<typename T, typename S, typename... Ts>
     struct is_one_of<T, S, Ts...> {
         static constexpr bool value = std::is_same<T, S>::value || is_one_of<T, Ts...>::value;
@@ -161,8 +161,9 @@ namespace DS {
         }
 
         /*
-         * 使用std::enable_if<is_one_of<T,Ts...>::value,void>::type,在编译期就可以判断
-         * void set<T>(Args&&...args)的类型T有没有超过variant规定的范围.
+         * 使用std::enable_if<is_one_of<T,Ts...>::value,void>::type,
+         * 在编译期就可以判断set<T>(Args&&...args)的类型T有没有超过variant规定的范围.
+         * 至于 std::enable_if<> 的用法:
          */
         template<typename T, typename ... Args,
                 typename = typename std::enable_if<is_one_of<T, Ts...>::value, void>::type>
@@ -193,14 +194,28 @@ namespace DS {
         }
     };
 
+    class variant_access_error : public std::logic_error {
+    public:
+        explicit variant_access_error(const std::string &str) : logic_error(str.c_str()) {}
+    };
+
+
+    // 通过 std::enable_if 加上 is_one_of<T,Ts...> 可以判断T是否符合范围Ts...
+    // 调用get时,只需要显式提供类型T,至于Ts...可以通过参数推断.
+    // 即 get<int>(variant), 显式提供类型T=int, 而Ts...取决于参数variant持有的类型范围
     template<typename T, typename ...Ts,
             typename = typename std::enable_if<is_one_of<T, Ts...>::value, void>::type>
     const T &get(const variant<Ts...> &v) {
         // 注意这里调用的时候需要加上template前缀, 跟typename前缀类似.
         // 当你调用某个模板函数f<T>,但是模板函数的类型T是需要推断出来时,就需要加上这个template前缀,
-        // 比如这里的variant在调用模板成员函数data_ptr<T>()时,传递给它的类型T是需要推断的(只有调用get<T,Ts..>函数的时候才能得到),
+        // 比如这里的variant在调用模板成员函数is_type<T>()时,传递给它的类型T是需要推断的(只有调用get<T>(variant)的时候才能得到),
         // 所以要加上template前缀.
-        return *(v.template data_ptr<T>()); // data_ptr返回const T*,解绑后返回const T&
+        if (v.template is_type<T>()) {
+            return *(v.template data_ptr<T>()); // data_ptr返回const T*,解绑后返回const T&
+        } else {
+            // 虽然已经检查了T在variant的范围Ts...内,但这里还是需要检查当前variant对象的类型是否为T,如果不是就需要抛出异常
+            throw DS::variant_access_error(("The type of variant is not [" + DS::type_name<T>() + "] now!!!"));
+        }
     }
 
 }

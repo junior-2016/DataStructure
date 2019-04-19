@@ -84,36 +84,38 @@ namespace DS {
             try {
                 switch (t.index()) {
                     case 0:
-                        return std::to_string(std::get<int>(t));
+                        return DS::to_string(std::get<int>(t));
                     case 1:
-                        return std::to_string(std::get<double>(t));
+                        return DS::to_string(std::get<double>(t));
                     case 2:
-                        return std::to_string(std::get<float>(t));
+                        return DS::to_string(std::get<float>(t));
                     case 3:
-                        return std::string("\'") + std::get<char>(t) + std::string("\'");
+                        return DS::to_string("\'") + std::get<char>(t) + DS::to_string("\'");
                     case 4:
-                        return std::to_string(std::get<long>(t));
+                        return DS::to_string(std::get<long>(t));
                     case 5:
-                        return std::to_string(std::get<long long>(t));
+                        return DS::to_string(std::get<long long>(t));
                     case 6:
-                        return std::to_string(std::get<long double>(t));
+                        return DS::to_string(std::get<long double>(t));
                     case 7:
-                        return std::to_string(std::get<unsigned>(t));
+                        return DS::to_string(std::get<unsigned>(t));
                     case 8:
-                        return std::to_string(std::get<unsigned long>(t));
+                        return DS::to_string(std::get<unsigned long>(t));
                     case 9:
-                        return std::to_string(std::get<unsigned long long>(t));
+                        return DS::to_string(std::get<unsigned long long>(t));
                     case 10:
-                        return "std::string[\"" + std::get<std::string>(t) + "\"]";
+                        return std::get<std::string>(t);
                     case 11:
-                        return "\"" + std::string(std::get<const char *>(t)) + "\"";
+                        return "\"" + DS::to_string(std::get<const char *>(t)) + "\"";
                     case 12:
+                        /*
                         auto &v = std::get<std::vector<int>>(t);
                         std::string s = "vector<int>[";
                         for (auto i = v.begin(); i != v.end(); ++i) {
                             s += std::to_string(*i) + (i + 1 == v.end() ? "" : ",");
                         }
-                        return s += "]";
+                        return s += "]";*/
+                        return DS::to_string(std::get<std::vector<int>>(t)); // 直接基于容器的字符串方法输出
                 }
             } catch (const std::bad_variant_access &e) {
                 std::cerr << e.what() << "\n";
