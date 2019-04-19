@@ -77,6 +77,7 @@ namespace DS {
         } catch (const DS::any_cast_error &e) {
             std::cerr << e.what() << "\n";
         }
+
         std::cout << "-------------------------------------------------\n\n";
     }
 
