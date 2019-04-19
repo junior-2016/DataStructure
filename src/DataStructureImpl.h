@@ -61,7 +61,7 @@ namespace DS {
         std::cout << "---------------------------------------------\n\n";
     }
 
-    void TEST_ANY_VARIANT() {
+    void TEST_ANY() {
         std::cout << "---------------TEST ANY VARIANT------------------\n";
         DS::any any(std::vector<int>{1, 2, 3});
         DS::any any1(2.36f);
@@ -77,8 +77,36 @@ namespace DS {
         } catch (const DS::any_cast_error &e) {
             std::cerr << e.what() << "\n";
         }
-
         std::cout << "-------------------------------------------------\n\n";
+    }
+
+    void TEST_VARIANT() {
+        std::cout << "--------------TEST VARIANT------------------------\n";
+        DS::variant<int, double, std::string, std::vector<int>, std::vector<std::string>> variant;
+        try {
+            variant.set<int>(5);
+            std::cout << DS::get<int>(variant) << "\n";
+
+            variant.set<double>(5.23);
+            std::cout << DS::get<double>(variant) << "\n";
+
+            variant.set<std::string>("Hello world");
+            std::cout << DS::get<std::string>(variant) << "\n";
+
+            /*
+            variant.set<std::vector<int>>(5, 4, 3, 7, 10);
+            std::cout << DS::to_string(DS::get<std::vector<int>>(variant)) << "\n";
+
+            variant.set<std::vector<std::string>>("Hello world", "Wo hhh");
+            std::cout << DS::to_string(DS::get<std::vector<std::string>>(variant)) << "\n";
+             */
+
+        } catch (std::bad_cast &e) {
+            std::cout << e.what() << "\n";
+        } catch (std::bad_variant_access &e) {
+            std::cout << e.what() << "\n";
+        }
+        std::cout << "---------------------------------------------------\n";
     }
 
     void TEST_CONTAINER_TO_STRING() {
@@ -86,10 +114,10 @@ namespace DS {
         std::vector<int> vector = {1, 2};
         std::vector<int> empty_vector;
         std::vector<int> single_vector = {1};
-        std::cout << DS::to_string<std::vector<int>>(vector) << "\n";
-        std::cout << DS::to_string<std::vector<int>>(vector, ";") << "\n";
-        std::cout << DS::to_string<std::vector<int>>(empty_vector) << "\n";
-        std::cout << DS::to_string<std::vector<int>>(single_vector) << "\n";
+        std::cout << DS::to_string(vector) << "\n";
+        std::cout << DS::to_string(vector, ";") << "\n";
+        std::cout << DS::to_string(empty_vector) << "\n";
+        std::cout << DS::to_string(single_vector) << "\n";
         std::cout << "---------------------------------------------------\n\n";
     }
 
@@ -97,7 +125,8 @@ namespace DS {
         TEST_CONTAINER_TO_STRING();
         TEST_MULTI_ARRAY();
         TEST_LIST();
-        TEST_ANY_VARIANT();
+        TEST_ANY();
+        TEST_VARIANT();
     }
 }
 #endif //DATASTRUCTURE_DATASTRUCTUREIMPL_H

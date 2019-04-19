@@ -9,6 +9,7 @@
 #include <typeinfo>
 #include <utility>
 #include <string>
+#include <set>
 
 /**
  * 仿照 std::variant 实现 DS::variant (variant是C++上union的替代品)
@@ -26,6 +27,40 @@ namespace DS {
     template<size_t S1, size_t S2, size_t ... Ss>
     struct max<S1, S2, Ss...> {
         static const size_t size_ = (S1 >= S2) ? max<S1, Ss...>::size_ : max<S2, Ss...>::size_;
+    };
+
+    // 模板递归,构造集合 {typeid(t).hash_code()}(for t in Ts...).
+    // 这是为了检查后面variant.set<T>的类型T有没有超出variant的范围.
+    /*
+    template<typename...T>
+    struct type_set;
+
+    template<typename T, typename... Ts>
+    struct type_set<T, Ts...> {
+        static std::set<size_t> set;
+
+        type_set() {
+            set.insert(typeid(T).hash_code());
+            set.insert(type_set<Ts...>::set.begin(), type_set<Ts...>::set.end());
+        }
+    };
+
+    template<>
+    struct type_set<> {
+        static std::set<size_t> set;
+    };
+     */
+    // 修正:使用模板递归bool值来判断,而不是set.
+    template<typename...>
+    struct is_one_of;
+
+    template<typename T, typename S, typename... Ts>
+    struct is_one_of<T, S, Ts...> {
+        static constexpr bool value = std::is_same<T, S>::value || is_one_of<T, Ts...>::value;
+    };
+    template<typename T>
+    struct is_one_of<T> {
+        static constexpr bool value = false;
     };
 
     // 模板递归解决内存分配回收
@@ -125,44 +160,48 @@ namespace DS {
             helper_t::destroy(type_id, &data);
         }
 
-        template<typename T, typename ... Args>
+        /*
+         * 使用std::enable_if<is_one_of<T,Ts...>::value,void>::type,在编译期就可以判断
+         * void set<T>(Args&&...args)的类型T有没有超过variant规定的范围.
+         */
+        template<typename T, typename ... Args,
+                typename = typename std::enable_if<is_one_of<T, Ts...>::value, void>::type>
         void set(Args &&... args) {
             // 这里是需要推断类型(需要推断Args所有类型)的右值引用参数列表,实际上是通用引用参数列表,
             // 既可以接受左值参数也可以接收右值参数,因此后面将args转发给T的构造函数时,
             // 需要先用std::forward<T>处理一下,确保转发给构造函数的时候右值参数还是右值参数,左值参数还是左值参数,
             // 如果没有std::forward处理,就会被一律当做左值参数转发给T的构造函数..
             helper_t::destroy(type_id, &data);
-            new(&data)T(std::forward<T>(args)...); // 注意这里要写成: std::forward<T>(args)...
+            new(&data)T(std::forward<Args>(args)...);//注意这里要写成std::forward<Args>(args)... 这属于op(TypeList)...语法
             type_id = typeid(T).hash_code();
         }
 
+        // 注意下面三个函数全部const,然后data_ptr返回const T*
         template<typename T>
-        bool is_type() {
+        bool is_type() const {
             return (type_id == typeid(T).hash_code());
         }
 
         template<typename T>
-        T *data_ptr() {
-            return reinterpret_cast<T *>(&data);
+        const T *data_ptr() const {
+            return reinterpret_cast<const T *>(&data);
         }
 
         template<typename T>
-        bool is_valid() {
+        bool is_valid() const {
             return (type_id != invalid_type());
         }
     };
 
-    template<typename T, typename ...Ts>
-    T &get(const variant<Ts...> &variant) {
+    template<typename T, typename ...Ts,
+            typename = typename std::enable_if<is_one_of<T, Ts...>::value, void>::type>
+    const T &get(const variant<Ts...> &v) {
         // 注意这里调用的时候需要加上template前缀, 跟typename前缀类似.
         // 当你调用某个模板函数f<T>,但是模板函数的类型T是需要推断出来时,就需要加上这个template前缀,
-        // 比如这里的variant在调用模板成员函数is_type<T>时,传递给它的类型T是需要推断的(只有调用get<T,Ts..>函数的时候才能得到),
+        // 比如这里的variant在调用模板成员函数data_ptr<T>()时,传递给它的类型T是需要推断的(只有调用get<T,Ts..>函数的时候才能得到),
         // 所以要加上template前缀.
-        if (variant.template is_type<T>()) {
-            return *(variant.template data_ptr<T>());
-        } else {
-            throw std::bad_cast();
-        }
+        return *(v.template data_ptr<T>()); // data_ptr返回const T*,解绑后返回const T&
     }
+
 }
 #endif //DATASTRUCTURE_VARIANT_H
