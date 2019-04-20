@@ -9,5 +9,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
 set(SRC_INCLUDE src src/ThreadPool.h)
 add_executable(DataStructure main.cpp ${SRC_INCLUDE})
+target_link_libraries(DataStructure -lpthread)
 
 set(CMAKE_CXX_FLAGS "-O3")

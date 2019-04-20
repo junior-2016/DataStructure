@@ -77,7 +77,7 @@ is_one_of<T,Ts....>,void)::type就是合法的且type为void,也不会干扰原�
  
 #### std::declval<T>()和decltype()的联合应用
 std::declval<T>()会返回一个T的一个右值(如果T是类,你可以认为
-放回了T的一个对象,如果T是int,double,char*...这些,可以认为是返回了一个对应的数值),
+返回了T的一个对象,如果T是int,double,char*...这些,可以认为是返回了一个对应的数值),
 比如 struct A() {}; std::declval<A>()可以认为返回一个A的对象,
 std::declval<int>()可以认为是返回一个int&&,即数值.
 但是你不能认为std::declval<T>()可以帮你创建匿名对象,实际上它是需要与decltype一起
