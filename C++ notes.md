@@ -75,6 +75,15 @@ is_one_of<T,Ts....>,void)::type就是合法的且type为void,也不会干扰原�
 如果T不在Ts...,is_one_of<T,Ts...>返回false,那么std::enable_if<>::type直接非法,
 编译器报错.
  
-
+#### std::declval<T>()和decltype()的联合应用
+std::declval<T>()会返回一个T的一个右值(如果T是类,你可以认为
+放回了T的一个对象,如果T是int,double,char*...这些,可以认为是返回了一个对应的数值),
+比如 struct A() {}; std::declval<A>()可以认为返回一个A的对象,
+std::declval<int>()可以认为是返回一个int&&,即数值.
+但是你不能认为std::declval<T>()可以帮你创建匿名对象,实际上它是需要与decltype一起
+使用的,比如decltype(std::declval< std::string >()) str = "string";
+或者 struct A { A(const A&){..} int foo() const {return 1;} };
+如果你用 decltype(A().foo()) a = 1 是非法的,因为A没有默认的无参构造函数,
+而使用 decltype(std::declval<A>().foo()) a = 1 就可以了.
 
 
