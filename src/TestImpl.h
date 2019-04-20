@@ -1,10 +1,10 @@
 //
 // Created by junior on 19-4-17.
 //
-#ifndef DATASTRUCTURE_DATASTRUCTUREIMPL_H
-#define DATASTRUCTURE_DATASTRUCTUREIMPL_H
+#ifndef DATASTRUCTURE_TESTIMPL_H
+#define DATASTRUCTURE_TESTIMPL_H
 
-#include "DataStructure.h"
+#include "Test.h"
 
 namespace DS {
     /**
@@ -119,12 +119,53 @@ namespace DS {
         std::cout << "---------------------------------------------------\n\n";
     }
 
+    // C++ thread detach 分离线程到后台例子:
+    struct background_task { // 后台任务
+    private:
+        int value;
+    public:
+        void add_one() {
+            // 每隔1s计算加1.后台计算
+            while (true) {
+                value++;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            }
+        }
+
+        const int getValue() const { return value; }
+
+        background_task() { value = 0; }
+    };
+
+    void MainThread() {
+        background_task task;
+        std::thread background_thread(&background_task::add_one, &task);
+        background_thread.detach(); // 后台线程脱离当前 MainThread.
+        while (true) {
+            // 当前 MainThread先自己做一些操作(这里用sleep代替),做完后拿取后台计算的数据并输出.
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            std::cout << "Now background value is:" << task.getValue() << "\n";
+        }
+    }
+
+    void TEST_DETACH_THREAD() {
+        std::cout << "------------TEST DETACH THREAD--------------\n";
+        std::thread mainThread(MainThread);
+        mainThread.join();
+    }
+
+    void TEST_THREAD_POOL() {
+
+    }
+
     void test() {
         TEST_CONTAINER_TO_STRING();
         TEST_MULTI_ARRAY();
         TEST_LIST();
         TEST_ANY();
         TEST_VARIANT();
+        TEST_THREAD_POOL();
+        TEST_DETACH_THREAD();
     }
 }
-#endif //DATASTRUCTURE_DATASTRUCTUREIMPL_H
+#endif //DATASTRUCTURE_TESTIMPL_H

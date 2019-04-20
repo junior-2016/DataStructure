@@ -84,7 +84,6 @@ namespace DS {
                 // new (new_data /* new_data所指向的空间必须满足T对象的对齐大小(预先开辟) */) T(construct func)
                 new(new_data)T(std::move(*(reinterpret_cast<T *>(old_data))));
                 // 使用std::move()将对象*((T*)old_data)变为右值,调用T(T&&t)的右值版本构造.
-                // 并且old_data在执行std::move就失去对原来内存的管理
             } else {
                 variant_helper<Ts...>::move(type_id, old_data, new_data);
             }
@@ -93,8 +92,7 @@ namespace DS {
         inline static void copy(size_t type_id, void *old_data, void *new_data) {
             if (type_id == typeid(T).hash_code()) {
                 new(new_data)T(*(reinterpret_cast<const T *>(old_data))); // 注意这里cast的时候cast为const T*.
-                // 跟move()不同在于,copy方法不会让old_data丢失对原来内存的管理,因为cast得到的对象是:*((const T*)old_data),
-                // new_data所在的对象是通过T(T&t)的左值版本构建的.
+                // 跟move()不同在于,cast得到的对象是:*((const T*)old_data), new_data所在的对象是通过T(T&t)的左值版本构建的.
             } else {
                 variant_helper<Ts...>::copy(type_id, old_data, new_data);
             }

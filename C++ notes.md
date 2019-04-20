@@ -86,4 +86,18 @@ std::declval<int>()可以认为是返回一个int&&,即数值.
 如果你用 decltype(A().foo()) a = 1 是非法的,因为A没有默认的无参构造函数,
 而使用 decltype(std::declval<A>().foo()) a = 1 就可以了.
 
+#### std::move纠正
+std::move(T&)仅仅是将类型T&变成了T&&，以便于调用右值版本的构造器,但是移动后
+的原对象依然可以使用和析构. 至于调用的右值版本构造器是否需要将原对象储存的内容move过来,还是只
+move一部分,都取决于用户自己的实现,不是由std::move来决定的.
+
+#### std ::this_thread ::yield() 和 std ::this_thread ::sleep_for(time)
+yield和sleep都是暂时交出当前线程的时间片,但是两者有本质的差别:
+sleep是固定好了需要交出的时间片(休眠范围),而且必须让出cpu时间片;
+而yield更像是一种尝试让出时间片的操作,如果有其他需要利用cpu的线程当然就让出时间片了,
+如果没有则依然会占用cpu(只有当前线程在运行的时候),另外yield让出的时间片大小也是不固定的,
+cpu什么时候重新调度当前线程也是不确定的。yield的一个主要应用是:在循环判断
+或者循环获取一个状态的时候,不去过多占用cpu的时间,而是隔一段时间再判断一次,
+即: while(is_get_state()) std::this_thread ::yield(); 
+ 
 

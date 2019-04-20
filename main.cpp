@@ -1,7 +1,6 @@
-#include "src/DataStructure.h"
-#include "src/ThreadPool.h"
+#include "src/Test.h"
 
-int main() {
+auto main() -> int {
     DS::test();
     return 0;
 }
