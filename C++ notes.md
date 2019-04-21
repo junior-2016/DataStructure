@@ -179,3 +179,26 @@ cv.wait_for变成cv.wait_until,所以这里就不细讲了.
 using namespace std::chrono_literals; => 可以使用 s/ms/.. 作为单位
 std::chrono ::system_clock ::now();   => 当前时间点
    
+#### C++ std::bind
+```
+struct multiple{
+   inline int operator()(int a,int times){
+       return a*times; 
+   }
+}
+int main(){
+    using namespace std;
+    using namespace std::placeholders;
+    auto f = bind(multiple(),_2,10);
+    // 说明一下: std::bind(functional_object, Args&& ...)
+    // 将一个函数对象与某些数值(实参)绑定成生成一个可以运行的函数f,
+    // 这些实参对应函数对象执行所需要的形参,第一个实参 _2 对应形参a,第二个实参10对应形参times.
+    // 这些实参可以是具体的数值,可以是通过std::ref(),std::cref()转换的引用,
+    // 也可以是placeholders. placeholders的形式是: _N, 这是指bind生成的f
+    // 在后面调用时传递给f的第N个实参,假如后面调用f是这样: f(1,2,3,4,../*其他参数*/);
+    // 那么这里的_2就是f的第二个实参2.
+    cout<<f(1,2,3,4); // => 输出20(_2为2,结果是2*10=20)
+    // PS:如果前面代码是: bind(functional_object,_10,10);但f实际调用时是
+    // f(1,2,3,4),只有4个实参,不存在第10个实参_10,那么编译器就会报错.. 
+}
+```

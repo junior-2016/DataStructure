@@ -12,6 +12,9 @@
 #include "ThreadPool.h"
 #include "KdTree.h"
 #include "Util.h"
+#include <random>
+#include <algorithm>
+#include <iterator>
 
 namespace DS {
     void test();
