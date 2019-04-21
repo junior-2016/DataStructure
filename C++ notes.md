@@ -100,4 +100,43 @@ cpu什么时候重新调度当前线程也是不确定的。yield的一个主要
 或者循环获取一个状态的时候,不去过多占用cpu的时间,而是隔一段时间再判断一次,
 即: while(is_get_state()) std::this_thread ::yield(); 
  
+#### using namespace std::chrono_literals;
+这个名称空间可以提供一个时间单位符号的索引,在调用sleep_for或者其他
+需要时间范围限制的锁操作,可以直接使用常用的时间单位,比如s,ms等.
 
+#### C++ condition variable 的一些笔记
+- cv.notify_all() 或者 cv.notify_one() 之前必须解锁.
+最好是用lock_guard<Mutex>或者unique_lock<Mutex>进行自动解锁,即: 
+```c++
+{ 
+    lock_guard<Mutex> lock; 
+    ... ;
+}(离开{...}scope后自动解锁) 
+cv.notify_all()
+```
+- void cv.wait(std::unique_lock<Mutex>&lock);
+在cv.wait之前已经持有互斥量的锁lock,调用cv.wait后,将锁释放(通过lock.unlock()),
+同时堵塞当前线程,所谓堵塞当前线程,可以理解为将当前线程的寄存器(临时变量,下一次唤醒该线程调用
+的代码地址等等)保存在栈里,也就是保存现场,然后将当前线程的id号塞进等待队列,
+一旦有其他线程调用cv.notify_all()或者cv.notify_one(),等待线程就会唤醒.
+如果是cv.notify_all(), 那么所有在等待队列的线程都会唤醒,所有等待的线程都会调用
+自己持有的lock对象的lock()函数,如果其中一个线程拿到了锁,那么互斥量就是它的了,其他线程
+只能堵塞在自己lock对象的lock()函数上,等拿到锁的线程释放锁以后,剩下的线程继续抢夺互斥量的
+锁,直到所有的线程都经历这么一段[拿到锁 -> 其他操作 -> 释放锁]的过程后,程序就结束了; 
+如果是cv.notify_one(),就简单很多,操作系统会随机从等待队列选择某个线程,把它唤醒,
+它当然就会调用lock对象的lock()函数持有锁,然后接着其他操作,最后释放锁.(
+为什么是操作系统来做这件事,因为C++其实不过是把各个OS自带的原生线程模型封装后提供一个
+统一的接口而已,内部操作包括线程调度等都是OS在做,并非由语言自己实现).
+
+
+- void cv.wait(std::unique_lock<Mutex>&lock,Pred_func pred)
+
+- cv_status cv.wait_until(std::unique_lock<Mutex>&lock,time_point)
+
+- bool cv.wait_until(std::unique_lock<Mutex>&lock,time_point,
+
+
+- 常用工具函数:
+using namespace std::chrono_literals; => 可以使用 s/ms/.. 作为单位
+std::chrono ::system_clock ::now();   => 当前时间点
+   

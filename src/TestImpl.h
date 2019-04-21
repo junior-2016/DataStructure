@@ -125,10 +125,11 @@ namespace DS {
         int value;
     public:
         void add_one() {
+            using namespace std::chrono_literals;
             // 每隔1s计算加1.后台计算
             while (true) {
                 value++;
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                std::this_thread::sleep_for(1s);
             }
         }
 
@@ -138,12 +139,13 @@ namespace DS {
     };
 
     void MainThread() {
+        using namespace std::chrono_literals;
         background_task task;
         std::thread background_thread(&background_task::add_one, &task);
         background_thread.detach(); // 后台线程脱离当前 MainThread.
         while (true) {
             // 当前 MainThread先自己做一些操作(这里用sleep代替),做完后拿取后台计算的数据并输出.
-            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            std::this_thread::sleep_for(5s);
             std::cout << "Now background value is:" << task.getValue() << "\n";
         }
     }
@@ -152,6 +154,40 @@ namespace DS {
         std::cout << "------------TEST DETACH THREAD--------------\n";
         std::thread mainThread(MainThread);
         mainThread.join();
+    }
+
+    std::condition_variable cv;
+    std::mutex mu;
+    void wait_until_thread() {
+        using namespace std::chrono_literals;
+        auto now = std::chrono::system_clock::now();
+        std::unique_lock<std::mutex> lock(mu);
+        if (cv.wait_until(lock, now + 10s) == std::cv_status::no_timeout) {
+            std::cout << "中途唤醒\n";
+        } else {
+            std::cout << "时间点到,结束\n";
+        }
+    }
+
+    void main_thread() {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1s);
+        // 第一步休眠很重要,因为我们要模拟的是wait_until_thread先取得锁,然后因为wait_until进入阻塞状态,同时把锁释放,
+        // 接着才是我们的main_thread获得锁,休眠2s后释放锁并且立刻唤醒wait线程,中途打断wait线程,那么它返回的状态自然是
+        // cv_status::no_timeout. 所以这里main_thread先休眠1s就是为了保证wait线程先执行,如果main_thread先执行的话,
+        // 执行结束后cv.notify_one()也没用,因为wait还没有进入阻塞状态呢.
+        {
+            std::lock_guard<std::mutex> lock(mu); // lock_guard 离开{..}scope后自动解锁
+            std::this_thread::sleep_for(2s);
+        }
+        cv.notify_one();
+    }
+
+    void TEST_WAIT_UNTIL() {
+        std::thread thread1(wait_until_thread);
+        std::thread thread2(main_thread);
+        thread1.join();
+        thread2.join();
     }
 
     void TEST_THREAD_POOL() {
@@ -165,7 +201,7 @@ namespace DS {
         TEST_ANY();
         TEST_VARIANT();
         TEST_THREAD_POOL();
-        TEST_DETACH_THREAD();
+        // TEST_DETACH_THREAD();
     }
 }
 #endif //DATASTRUCTURE_TESTIMPL_H

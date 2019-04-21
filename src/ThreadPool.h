@@ -38,8 +38,9 @@ public:
 
     // 读写冲突加锁..
     void read() {
+        using namespace std::chrono_literals;
         std::lock_guard<std::mutex> mu(mutex);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        //std::this_thread::sleep_for(1ms);
         std::cout << mutex.getVal() << "\n";
     }
 
