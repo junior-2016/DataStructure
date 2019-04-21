@@ -218,3 +218,24 @@ void remove_example(){
     // 输出 1 2 10 10 10 10 7 8 9 
 }
 ```
+std::bind对类函数和类成员的绑定 : 对于类函数,是可以直接绑定后调用的;
+对于类成员,只能绑定后对其访问,而不能绑定后修改成员,如果要修改成员就写一个类函数来修改,
+然后用bind绑定这个类函数.
+```c++
+struct S{
+    void func(int){}
+    double d = 1.0;
+};
+int main(){
+    using namespace std::placeholders;
+    S s;
+    auto f = bind(&S::func, &s, _1);
+    f(1);
+    auto f1 = bind(&S::d, _1);
+    std::cout<<f1(s)<<"\n";                      // => 1.0
+    std::cout<<f1(std::make_shared<S>(s))<<"\n"; // => 1.0
+}
+```
+#### C++ std::result_of<F(Args...)> ::type
+返回函数签名的返回值类型,比如:struct S{ int operator()(int,char){return 0;}};
+可以通过 std::result_of<S(int,char)> ::type得到int类型.
