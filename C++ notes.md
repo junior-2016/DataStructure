@@ -114,10 +114,10 @@ cpu什么时候重新调度当前线程也是不确定的。yield的一个主要
 }(离开{...}scope后自动解锁) 
 cv.notify_all()
 ```
-- void cv.wait(std::unique_lock<Mutex>&lock);
+- void cv.wait(std::unique_lock<Mutex>&lock);  
 在cv.wait之前已经持有互斥量的锁lock,调用cv.wait后,将锁释放(通过lock.unlock()),
-同时堵塞当前线程,所谓堵塞当前线程,可以理解为将当前线程的寄存器(临时变量,下一次唤醒该线程调用
-的代码地址等等)保存在栈里,也就是保存现场,然后将当前线程的id号塞进等待队列,
+同时堵塞当前线程,所谓堵塞当前线程,可以理解为将当前线程的寄存器(临时变量,以及唤醒线程后需要执行
+的代码首地址等等)保存在栈里,也就是保存现场,然后将当前线程的id号塞进等待队列,
 一旦有其他线程调用cv.notify_all()或者cv.notify_one(),等待线程就会唤醒.
 如果是cv.notify_all(), 那么所有在等待队列的线程都会唤醒,所有等待的线程都会调用
 自己持有的lock对象的lock()函数,如果其中一个线程拿到了锁,那么互斥量就是它的了,其他线程
@@ -129,12 +129,51 @@ cv.notify_all()
 统一的接口而已,内部操作包括线程调度等都是OS在做,并非由语言自己实现).
 
 
-- void cv.wait(std::unique_lock<Mutex>&lock,Pred_func pred)
+- void cv.wait(std::unique_lock<Mutex>&lock,Pred_func pred)  
+内部实现:
+```c++
+while(!pred()){
+    wait(lock);
+}
+```
+这里和前面的cv.wait不同在于加入了bool函数pred的判断,也就是说,如果其他线程
+调用notify_*将当前线程唤醒,并且当前线程调用lock对象的lock()函数成功获得了互斥量的锁,
+它还需要判断一下pred()函数返回的是不是true,如果不是,那么就调用wait重新进入等待状态,
+释放获得的锁,同时进入堵塞状态... 直到当前线程被notify_*唤醒并且pred()也是返回true的时候,
+才能继续执行当前线程剩下的代码.
 
-- cv_status cv.wait_until(std::unique_lock<Mutex>&lock,time_point)
+- cv_status cv.wait_until(std::unique_lock<Mutex>&lock,time_point)  
+这个和前面cv.wait的不同在于:除了可以通过notify_*唤醒线程外,还可以设置一个
+时间点time_point,如果等待时间超过这个时间点,线程就会自动唤醒(不需要notify_*唤醒). 
+这里有几点需要讨论一下:如果等待线程在time_point到来之前就被其他线程通过notify_*唤醒了,
+那么它会调用线程lock对象的lock函数尝试锁住互斥量,如果失败就会一直堵塞在lock函数那里,
+直到锁住互斥量为止,最后返回cv_status::no_timeout; 如果线程一直等到time_point
+那一刻还没有收到notify, 就会选择自动唤醒,同样的,线程会调用lock对象的lock函数尝试
+锁住互斥量,如果不成功就堵塞住,直到成功拿到互斥量的锁为止,最后返回cv::status::time_out.
 
-- bool cv.wait_until(std::unique_lock<Mutex>&lock,time_point,
+- bool cv.wait_until(std::unique_lock<Mutex>&lock,time_point,Pred_func pred)  
+内部实现:
+```c++
+while (!pred()) {
+    if (wait_until(lock, time_point) == std::cv_status::timeout) {
+        return pred();
+    }
+}
+return true;
+```
+加入pred()函数判断,跟上一个不同在于,如果时间点到来之前,等待线程被其他线程的notify
+唤醒,那么等待线程尝试锁住互斥量(如果不成功就堵塞),成功锁住后返回cv_status::no_timeout,
+此时上面的代码中if(wait_until...)判断失败,进入while()判断,如果判断结果pred()是true,
+那么线程就直接返回true了; 如果pred()是false,那么线程会再次调用wait_until进入等待状态,
+同时解锁自己得到的互斥量. 注意就算再次调用wait_until,时间点设置和之前还是一样的.
+如果一直到time_point时刻(之前的notify都没有成功让线程返回true),那么线程会自动唤醒,
+调用lock对象的lock()函数得到互斥量的锁(不成功就堵塞),同时返回cv_status::timeout,
+此时if(wait until...)判断成功,线程返回pred()函数此时的状态.
 
+- cv.wait_for  
+cv.wait_for 和 cv_wait_until是差不多的,只是从时间点设置(time_point)变成了
+从当前开始的一段时间内(time_interval),通过 now_time() + time_interval 就可以把
+cv.wait_for变成cv.wait_until,所以这里就不细讲了.
 
 - 常用工具函数:
 using namespace std::chrono_literals; => 可以使用 s/ms/.. 作为单位

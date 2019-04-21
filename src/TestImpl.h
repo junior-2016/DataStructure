@@ -178,7 +178,13 @@ namespace DS {
         // 执行结束后cv.notify_one()也没用,因为wait还没有进入阻塞状态呢.
         {
             std::lock_guard<std::mutex> lock(mu); // lock_guard 离开{..}scope后自动解锁
-            std::this_thread::sleep_for(2s);
+            //std::this_thread::sleep_for(2s); // 睡眠2s后解锁并中途唤醒线程
+            std::this_thread::sleep_for(15s);
+            // 如果我们睡眠的时间超过wait_until等待的时间范围,实际上wait_until已经自动唤醒了(不需要notify_*)
+            // 但是wait_until线程唤醒后,会调用它所拥有的lock对象的lock()函数,尝试锁住互斥量,这是不成功的,
+            // 因为互斥量还被main_thread()锁着呢,这就导致wait_until线程因为lock()函数得不得互斥量而被堵塞.
+            // 当main_thread()线程睡眠结束并释放锁后,wait_until随即锁住互斥量并结束线程,最后main_thread的
+            // notify_*没有什么用,因为wait_until线程已经结束了.
         }
         cv.notify_one();
     }
