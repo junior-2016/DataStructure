@@ -202,3 +202,19 @@ int main(){
     // f(1,2,3,4),只有4个实参,不存在第10个实参_10,那么编译器就会报错.. 
 }
 ```
+更复杂的binder例子
+```
+void remove_example(){
+    vector<int> v1 = {1,2,3,4,5,6,7,8,9};
+    replace_if(v1.begin(),
+              v1.end(),
+              bind(logical_and<bool>(),
+          /* f= */ bind(greater_equal<int>(),_1,3), 
+             // 内部调用 f(vector_element) => greater_equal(vector_element,3) => return e>=3;
+          /* f= */ bind(less_equal<int>(),_1,6))   
+             // 内部调用 f(vector_element) => less_equal(vector_element,6) => return e<=6;
+              ,10);
+    for_each(v1.begin(),v1.end(),[](int a){cout<<a<<" ";});
+    // 输出 1 2 10 10 10 10 7 8 9 
+}
+```
