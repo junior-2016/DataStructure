@@ -276,8 +276,8 @@ void example(F &&f, Args &&... args) {
 auto main()->int{
    example1();
    example2();
-   example(S(), 1, 'c'); // 这里的S还是前面那个结构体
-   example([](int, char) { return std::string("str"); }, 1, 'c'); 
+   example(S(), 1, 'c'); // 这里的S还是前面那个结构体,输出 true true true
+   example([](int, char) { return std::string("str"); }, 1, 'c'); // 输出 true true true
 }
 ```
 
