@@ -236,11 +236,81 @@ int main(){
     std::cout<<f1(std::make_shared<S>(s))<<"\n"; // => 1.0
 }
 ```
-#### C++ std::result_of<F(Args...)> ::type
-返回函数签名的返回值类型,比如:struct S{ int operator()(int,char){return 0;}};
-可以通过 std::result_of<S(int,char)> ::type得到int类型.
 
-#### lambda && functional object && std::bind 等价用法
+#### std::result_of<F(Args...)> ::type && decltype(f(args...)) 的等价用法 
+std::result_of<F(Args...)>::type 返回一个函数签名F(Args...)的返回值类型；  
+decltype(f(args...)) 返回一个具体函数f(args...)的返回值类型.  
+下面是两个example,分别针对函数对象和lambda表达式给出两者的等价用法:
+```c++
+struct S {
+    bool operator()(int a, char c) { return false; }
+};
+void example1() {
+    decltype(S()(1, 'c')) s1 = true;
+    std::result_of<S(int, char)>::type s2 = true;
+    std::cout << std::boolalpha << s1 << " " << s2 << "\n"; // 输出 true true
+}
+void example2() {
+    auto f = [](int a) { return a; };
+    decltype(f(1)) a1 = 1;
+    std::result_of<decltype(f)(int)>::type a2 = 1;
+    std::cout << a1 << " " << a2 << "\n"; // 输出 1 1
+}
+```
+通过模板来反映这两者直接的等价性:
+```c++
+template<typename F, typename ... Args>
+void example(F &&f, Args &&... args) {
+    using return_type_1 = typename std::result_of<F(Args...)>::type;
+    using return_type_2 = decltype(f(args...));
+    std::cout << std::boolalpha << std::is_same<return_type_1, return_type_2>::value << "\n";
+}
+auto main()->int{
+   example(S(), 1, 'c'); // 这里的S还是前面那个结构体,最后输出true,证明了两种用法等价
+   example([](int, char) { return std::string("str"); }, 1, 'c'); // 输出true
+}
+```
+
+#### C++线程池的一些技巧
+通过std::bind将任意函数包装成 std::function<return_type()>,以及更进一步将任意函数
+包装成 std::function<void()>
+```c++
+template<typename F,typename ... Args>
+future submit_task(F&& f, Args&& ... args){
+    using return_type = decltype(f(args...));//也可以用std::result_of<F(Args...)>::type
+    
+    std::function<return_type()> func = std::bind(std::forward<F>(f),std::forward<Args>(args)...)
+    // 这里将函数对象(或者lambda表达式对象)与已经提供的参数包装起来,变成一个新的函数func,
+    // 此时的func已经不需要任何参数(调用它只需要auto ret = func()即可),所以它的函数签名是<return_type()>.
+    // 注意在bind函数对象f和参数args...时需要先用std::forward处理一下,
+    // 因为这里的F&&和Args&&..都是通用引用,既可以接收左值又可以接收右值,需要forward实现正确的转发.
+    
+    // 有了包装后的函数,我们需要把它打包在一个packaged_task对象指针里.
+    // packaged_task类似与std::promise,可以提供一个future对象,
+    // 我们可以在当前线程获取task的future对象,然后调用future对象的get()方法,
+    // get()方法如果没有得到值就会堵塞在那里;
+    // 同时我们把task进一步包装为<void()>类型的函数存在队列里,然后让我们的线程池
+    // 分配一个线程去执行队列里的task,一旦task执行完成,我们当前线程的future.get()方法就不再堵塞了,
+    // 可以得到正确的返回值.这里为什么要进一步把task包装成<void()>的类型呢?第一个
+    // 原因是统一task队列的元素类型,task队列里面每一个任务都是void()函数,我们就只需要
+    // 一个数据结构 std::queue<std::function<void()>> 即可,如果不这样做,
+    // 不同task签名中return_type完全不一样,就很难构造队列了; 第二个原因是,
+    // 我们将task保存在队列里,只是为了让线程池分配线程去执行队列里的task,而不需要
+    // 线程池的线程得到task的返回值,返回值是在当前线程获取future后调用get()得到的,
+    // 线程池的线程只负责执行task就可以了,从这一点来说,包装成<void()>才是正确的.
+    auto task_ptr = std::make_shared<std::packaged_task<return_type()>>(func);
+    std::function<void()> wrap_task = [task_ptr](){ (*task_ptr)(); }; // 进一步包装为<void()>
+    task_queue.enqueue(wrap_task); // 任务入队列
+    exec_task_condition_variable.notify_one(); // 通过条件变量的notify_one()唤醒一个线程去执行task.
+    return task_ptr->get_future(); // 返回future供当前线程调用get()方法获得返回值
+}
+auto main()->int{
+    auto future = summit_task([](int a){return a;},1);
+    std::cout<< future.get()<< "\n";
+}
+```
+
+#### lambda && functional object && std::bind 三者的等价用法
 ```c++
 struct S {
     bool operator()(int a) const { return false; }
