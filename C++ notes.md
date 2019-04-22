@@ -239,3 +239,24 @@ int main(){
 #### C++ std::result_of<F(Args...)> ::type
 返回函数签名的返回值类型,比如:struct S{ int operator()(int,char){return 0;}};
 可以通过 std::result_of<S(int,char)> ::type得到int类型.
+
+#### lambda && functional object && std::bind 等价用法
+```c++
+struct S {
+    bool operator()(int a) const { return false; }
+};
+template <typename F>
+void func(F f){ std::cout<<std::boolalpha<< f(1)<<"\n";}
+auto main() -> int {
+    func(S()); 
+    // S()创建函数对象s,调用时s(1)等价于s.operator()(1)
+    
+    func([](int a){return false;}); 
+    // 创建lambda表达式[](..){...},调用时为[](..){...}(1)
+    
+    func(std::bind(S(),std::placeholders::_1)); 
+    // std::bind将函数对象S()与某些参数绑定生成f,后面调用f(1),
+    // 则placeholders::_1为1,实际调用是 (S())(1) => (S()).operator()(1)
+    return 0;
+}
+```
