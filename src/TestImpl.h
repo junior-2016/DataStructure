@@ -158,6 +158,7 @@ namespace DS {
 
     std::condition_variable cv;
     std::mutex mu;
+
     void wait_until_thread() {
         using namespace std::chrono_literals;
         auto now = std::chrono::system_clock::now();
@@ -197,7 +198,25 @@ namespace DS {
     }
 
     void TEST_THREAD_POOL() {
-
+        std::cout << "--------------TEST THREAD POOL--------------\n";
+        DS::ThreadPool pool(4);
+        std::vector<std::future<int>> result_collect;
+        for (auto i = 0; i < 8; i++) {
+            result_collect.emplace_back(
+                    pool.enqueue(
+                            [=](int times) { return times * (i + 1); }, // F
+                            4 // args...
+                    ));
+            // 注意这里的顺序是: 先依次调用enqueue启动线程执行任务,同时把future保存起来,等全部任务enqueue后,再同时执行future->get().
+            // 如果每enqueue一个task就执行一次future->get(),会堵塞for循环,直到任务结束获得值才能启动下一个任务,那就跟串行一样了,没有意义.
+        }
+        for (auto &result:result_collect) {
+            std::cout << result.get() << " ";
+            // 这里每执行一次future.get(),如果没有得到值会堵塞住,直到获得值才会执行下一次result.get(),
+            // 所以得到的输出会是顺序的 4 8 12 16 20 24 28 32 (但执行计算任务的线程是并发同时进行的)
+        }
+        std::cout << "\n";
+        std::cout << "--------------------------------------------\n";
     }
 
     void test() {
@@ -207,7 +226,6 @@ namespace DS {
         TEST_ANY();
         TEST_VARIANT();
         TEST_THREAD_POOL();
-        // TEST_DETACH_THREAD();
     }
 }
 #endif //DATASTRUCTURE_TESTIMPL_H

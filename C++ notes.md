@@ -109,7 +109,7 @@ cpu什么时候重新调度当前线程也是不确定的。yield的一个主要
 最好是用lock_guard<Mutex>或者unique_lock<Mutex>进行自动解锁,即: 
 ```c++
 { 
-    lock_guard<Mutex> lock; 
+    lock_guard<Mutex> lock; // 或者unique_lock<Mutex> lock;
     ... ;
 }(离开{...}scope后自动解锁) 
 cv.notify_all()
@@ -237,10 +237,12 @@ int main(){
 }
 ```
 
-#### std::result_of<F(Args...)> ::type && decltype(f(args...)) 的等价用法 
+#### std::result_of<F(Args...)> ::type && decltype(f(args...)) && 
+std::invoke_result_t<F,Args...>的等价用法 
 std::result_of<F(Args...)>::type 返回一个函数签名F(Args...)的返回值类型；  
 decltype(f(args...)) 返回一个具体函数f(args...)的返回值类型.  
-下面是两个example,分别针对函数对象和lambda表达式给出两者的等价用法:
+std::invoke_result_t<F,Args...>是C++17引入的.
+下面是两个example,分别针对函数对象和lambda表达式给出三者的等价用法:
 ```c++
 struct S {
     bool operator()(int a, char c) { return false; }
@@ -248,26 +250,34 @@ struct S {
 void example1() {
     decltype(S()(1, 'c')) s1 = true;
     std::result_of<S(int, char)>::type s2 = true;
-    std::cout << std::boolalpha << s1 << " " << s2 << "\n"; // 输出 true true
+    std::invoke_result_t<S,int,char> s3 = true;
+    std::cout << std::boolalpha << s1 << " " << s2 <<" "<<s3<< "\n"; // 输出 true true true
 }
 void example2() {
     auto f = [](int a) { return a; };
     decltype(f(1)) a1 = 1;
     std::result_of<decltype(f)(int)>::type a2 = 1;
-    std::cout << a1 << " " << a2 << "\n"; // 输出 1 1
+    std::invoke_result_t<decltype(f),int> a3 = 1;
+    std::cout << a1 << " " << a2 <<" "<<a3<< "\n"; // 输出 1 1 1
 }
 ```
-通过模板来反映这两者直接的等价性:
+通过模板来反映这三者直接的等价性:
 ```c++
 template<typename F, typename ... Args>
 void example(F &&f, Args &&... args) {
     using return_type_1 = typename std::result_of<F(Args...)>::type;
     using return_type_2 = decltype(f(args...));
-    std::cout << std::boolalpha << std::is_same<return_type_1, return_type_2>::value << "\n";
+    using return_type_3 = typename std::invoke_result_t<F,Args...>;
+    std::cout << std::boolalpha << 
+         std::is_same<return_type_1, return_type_2>::value << " " <<
+         std::is_same<return_type_1, return_type_3>::value << " " <<
+         std::is_same<return_type_2, return_type_3>::value <<"\n";
 }
 auto main()->int{
-   example(S(), 1, 'c'); // 这里的S还是前面那个结构体,最后输出true,证明了两种用法等价
-   example([](int, char) { return std::string("str"); }, 1, 'c'); // 输出true
+   example1();
+   example2();
+   example(S(), 1, 'c'); // 这里的S还是前面那个结构体
+   example([](int, char) { return std::string("str"); }, 1, 'c'); 
 }
 ```
 
@@ -329,4 +339,14 @@ auto main() -> int {
     // 则placeholders::_1为1,实际调用是 (S())(1) => (S()).operator()(1)
     return 0;
 }
+```
+
+#### std::vector< std::thread>错误添加方法
+```c++
+std::thread th(func);
+// vector.push_back(th); => 错误,因为thread的左值拷贝器被删除了.
+vector.push_back(std::move(th)); => 正确
+vector.push_back(std::thread(func)); => 正确
+vector.emplace_back(function_object/function_pointer/lambda-expr);=>正确 
+
 ```
