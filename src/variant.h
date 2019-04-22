@@ -83,7 +83,11 @@ namespace DS {
                 // 使用 placement new 特性.
                 // new (new_data /* new_data所指向的空间必须满足T对象的对齐大小(预先开辟) */) T(construct func)
                 new(new_data)T(std::move(*(reinterpret_cast<T *>(old_data))));
-                // 使用std::move()将对象*((T*)old_data)变为右值,调用T(T&&t)的右值版本构造.
+                // 使用std::move()将对象*((T*)old_data)变为右值类型,调用T(T&&t)的右值版本构造.
+                // 注意到std::move只是将对象强制变为右值,从而调用T(T&&)右值构造器,
+                // 至于构造结束后,old_data能不能继续用,是不是变成nullptr了,这完全取决于T(T&&)的实现.
+                // 右值构造器T(T&&old)可能只是移动old对象的一部分成员,或者选择完全不移动old的成员,这些都是不确定的,
+                // 不能仅从std::move上就认为移动构造后的old_data就废了.
             } else {
                 variant_helper<Ts...>::move(type_id, old_data, new_data);
             }

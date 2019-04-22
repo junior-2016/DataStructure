@@ -1,7 +1,7 @@
 #### DataStructure
 
 #### Build and Run
-Compiler: g++-8 / clang-7; C++ Standard: C++17; OS: Linux Mint19
+Compiler: g++-8 / clang++-7; C++ Standard: C++17; OS: Linux Mint19
 
 ##### List
 提供多类型数据的多重嵌套链表,用initialize-list实现显式的嵌套链表
@@ -66,3 +66,12 @@ void test() {
 ```
 #### MultiArray
 用模板实现的任意维度数组
+
+#### variant
+类似std::variant
+
+#### any
+类似std::any
+
+#### ThreadPool
+简易线程池
