@@ -84,7 +84,7 @@ std::declval<int>()可以认为是返回一个int&&,即数值.
 使用的,比如decltype(std::declval< std::string >()) str = "string";
 或者 struct A { A(const A&){..} int foo() const {return 1;} };
 如果你用 decltype(A().foo()) a = 1 是非法的,因为A没有默认的无参构造函数,
-而使用 decltype(std::declval<A>().foo()) a = 1 就可以了.
+而使用 decltype(std::declval< A >().foo()) a = 1 就可以了.
 
 #### std::move纠正
 std::move(T&)仅仅是将类型T&变成了T&&，以便于调用右值版本的构造器,但是移动后
@@ -349,4 +349,62 @@ vector.push_back(std::move(th)); => 正确
 vector.push_back(std::thread(func)); => 正确
 vector.emplace_back(function_object/function_pointer/lambda-expr);=>正确 
 
+```
+
+#### c++ 拷贝构造函数的极致写法(见[https://www.zhihu.com/question/30196513])  
+```c++
+struct S {
+    std::string s1, s2;
+
+    template<typename S1, typename S2 = std::string,
+            typename = std::enable_if_t<std::is_convertible_v<S1, std::string>>>
+    explicit S(S1 &&s1, S2 &&s2 = "default_string") {
+        this->s1 = std::forward<S1>(s1);
+        this->s2 = std::forward<S2>(s2);
+    }
+};
+```
+
+#### auto和decltype(auto)的区别:  
+auto是一种decay的写法,即它会去掉所给元素类型的引用和const修饰等,而decltype(auto)
+不会.实际代码中更推荐decltype(auto)的写法.例如:
+```c++
+const int & i = 1;
+auto i1 = i;           // i1 类型为 int
+const auto & i2 = i;   // i2 类型为 const int &
+decltype(auto) i3 = i; // i3 类型为 const int &
+```
+用一个函数返回值的例子做测试(从中可以看出decltype(auto)作为函数返回类型更精确):
+```c++
+auto f(const int &i) {
+    return i;
+}
+
+const auto &f_(const int &i) {
+    return i;
+}
+
+decltype(auto) f__(const int &i) {
+    return i;
+}
+
+void test() {
+    std::cout << std::boolalpha << std::is_same<int, decltype(f(1))>::value << "\n";
+    std::cout << std::boolalpha << std::is_same<const int &, decltype(f(1))>::value << "\n";
+    std::cout << std::boolalpha << std::is_same<const int &, decltype(f_(1))>::value << "\n";
+    std::cout << std::boolalpha << std::is_same<const int &, decltype(f__(1))>::value << "\n";
+}
+输出:
+true
+false
+true
+true
+```
+用模板包装任意一个函数的写法,其返回值也应该用decltype(auto)更好:
+```c++
+template<typename F,typename ... Args)
+decltype(auto) Function(F&& func,Args&& ... args){
+    return func(std::forward<Args>(args)...);
+    // 或 return std::bind(func,std::forward<Args>(args)...)();
+}
 ```
