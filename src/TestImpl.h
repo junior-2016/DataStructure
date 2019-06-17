@@ -219,13 +219,32 @@ namespace DS {
         std::cout << "--------------------------------------------\n";
     }
 
+    void TEST_CLOSURE() {
+        std::cout << "The result of closure_value function is : " << (DS::closure_value<int>()()) << std::endl;
+        constexpr size_t N = 10;
+        int *array = DS::closure_pointer<int, N>()();
+        std::cout << "The result of closure_pointer is : ";
+        std::for_each(array, array + N, [](const int a) { std::cout << a << " "; });
+        std::cout << std::endl;
+        delete[] array; // 这里必须手动释放内存
+        std::vector<int> vector = DS::closure_vector<int>()();
+        std::cout << "The result of closure_vector is : " << DS::to_string(vector) << std::endl;
+    }
+
+    void TEST_LOOP_CONSTEXPR() {
+        DS::test_A();
+        DS::test_B();
+    }
+
     void test() {
-        TEST_CONTAINER_TO_STRING();
-        TEST_MULTI_ARRAY();
-        TEST_LIST();
-        TEST_ANY();
-        TEST_VARIANT();
-        TEST_THREAD_POOL();
+        //TEST_CONTAINER_TO_STRING();
+        //TEST_MULTI_ARRAY();
+        //TEST_LIST();
+        //TEST_ANY();
+        //TEST_VARIANT();
+        //TEST_THREAD_POOL();
+        TEST_CLOSURE();
+        TEST_LOOP_CONSTEXPR();
     }
 }
 #endif //DATASTRUCTURE_TESTIMPL_H

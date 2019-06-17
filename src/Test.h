@@ -12,6 +12,8 @@
 #include "ThreadPool.h"
 #include "KdTree.h"
 #include "Util.h"
+#include "Closure.h"
+#include "LoopConstExpr.h"
 #include <random>
 #include <algorithm>
 #include <iterator>

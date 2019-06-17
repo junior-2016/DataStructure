@@ -7,7 +7,7 @@ set(GCC_COVERAGE_COMPILE_FLAGS "-Wall -Wextra -Wconversion -pedantic -Werror=ret
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
-set(SRC_INCLUDE src src/ThreadPool.h)
+set(SRC_INCLUDE src)
 add_executable(DataStructure main.cpp ${SRC_INCLUDE})
 target_link_libraries(DataStructure -lpthread)
 

@@ -408,3 +408,29 @@ decltype(auto) Function(F&& func,Args&& ... args){
     // 或 return std::bind(func,std::forward<Args>(args)...)();
 }
 ```
+
+#### std::extent<array_type,dim=0>
+std::extent可以打印数组类型的维度,比如 int x \[3\]\[4\]; 
+std::extent< decltype(x),0 > 为 3; std::extent< decltype(x),1 > 为 4.
+如果std::extent< array_type ,dim >没有提供dim,默认dim=0.
+更具体的例子:
+```c++
+ std::cout << std::extent<int[3]>::value << '\n'; // < 默认维度为0,输出3
+    std::cout << std::extent<int[3][4], 0>::value << '\n'; // 输出3
+    std::cout << std::extent<int[3][4], 1>::value << '\n'; // 输出4
+    std::cout << std::extent<int[3][4], 2>::value << '\n'; // 输出0,因为超过数组维度
+    std::cout << std::extent<int[]>::value << '\n'; // 输出0,因为是空数组
+ 
+    const auto ext = std::extent<int[9]>{};
+    std::cout << ext << '\n'; // < 隐式转换到 std::size_t,输出9
+ 
+    const int ints[] = {1,2,3,4};
+    std::cout << std::extent<decltype(ints)>::value << '\n'; // < 数组大小,输出4 
+```
+
+#### noexcept 关键字的使用场景
+noexcept只有在你明确这个函数不会抛出异常的情况下,才可以显式写noexcept(
+或者noexcept(true)).如果这个函数在实现的过程中会抛出异常或者有类似抛出
+异常的行为(比如C语言的pthread_exit,见[https://www.zhihu.com/question/307509340/answer/563442562]
+),就不要加noexcept关键字,否则在noexcept函数抛出异常的话,
+编译器会调用std::terminal()直接崩溃程序.
